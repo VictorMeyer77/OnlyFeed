@@ -1,21 +1,15 @@
-from kafka import KafkaProducer
 from psycopg2 import pool
 from datetime import datetime
-from random import randint
 import requests
 import json
 import sys
-import time
 
 
 class GameReviewAlim:
 
-    def __init__(self, confSteamLink, confPostgres, confKafka):
+    def __init__(self, confSteamLink, confPostgres):
 
         self.review_link = confSteamLink["game_review_link"]
-        self.kafkaHost = confKafka["host"]
-        self.kafkaPort = confKafka["port"]
-        self.kafkaTopics = confKafka["topics"]
 
         try:
 
@@ -35,43 +29,57 @@ class GameReviewAlim:
 
         flags = self.getGameFlags()
 
-        i = 0
+        occurenceByGame = 1 if int(len(flags["id"]) / count) < 1 else int(len(flags["id"]) / count)
 
-        while i < count:
+        for i in range(0, len(flags["id"])):
 
-            reviews = self.getSteamGameReviews(flags["id"][i], flags["cursor"][i])
+            for j in range(0, occurenceByGame):
 
-            if reviews is not None and len(reviews) > 0:
+                reviews, nextCursor = None, None
 
-                for review in reviews:
-                    frmtReview = self.formatGameReview(review, flags["id"][i])
-                    self.sendToTopic(frmtReview)
+                if j == 0:
 
-            else:
-                count += 1
+                    reviews, nextCursor = self.getSteamGameReviews(flags["id"][i],
+                                                                   flags["cursor"][i])
 
-        i += 1
+                else:
+
+                    reviews, nextCursor = self.getSteamGameReviews(flags["id"][i],
+                                                                   nextCursor)
+
+                if j == occurenceByGame - 1:
+
+                    self.updateFlag(flags["id"][i], nextCursor)
+
+                if reviews is not None and len(reviews) > 0:
+
+                    for review in reviews:
+
+                        frmtReview = self.formatGameReview(review, flags["id"][i])
+                        self.insertGameReview(frmtReview)
 
     @staticmethod
     def formatGameReview(review, gameId):
 
-        return {"id": review["recommendationid"],
-                "author_id": review["author"]["steamid"],
-                "game_id": gameId,
-                "date_create": str(datetime.fromtimestamp(review["timestamp_created"])),
-                "review": review["review"]}
+        return (review["recommendationid"],
+                review["author"]["steamid"],
+                gameId,
+                str(datetime.fromtimestamp(review["timestamp_created"])),
+                review["review"])
 
     # STEAM
 
     def getSteamGameReviews(self, gameId, flag):
 
-        gameReviewRequest = requests.get(self.review_link.formta(str(gameId), flag))
+        gameReviewRequest = requests.get(self.review_link.format(str(gameId), flag))
         gameReviewResult = json.loads(gameReviewRequest.content)
 
         if gameReviewResult["success"] == 1:
-            return gameReviewResult["reviews"]
+
+            return gameReviewResult["reviews"], gameReviewResult["cursor"]
+
         else:
-            return None
+            return None, None
 
     # POSTGRES
 
@@ -82,32 +90,52 @@ class GameReviewAlim:
             flags = {"id": [], "cursor": []}
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("select game_id, flag from steam_game_reviews_flag order by date_maj")
+            cursor.execute("SELECT game_id, flag FROM steam_game_reviews_flag ORDER BY date_maj")
             resultReq = cursor.fetchall()
 
             for res in resultReq:
                 flags["id"].append(res[0])
                 flags["cursor"].append(res[1])
 
-            cursor.close()
-            conn.close()
+            self.pool.putconn(conn)
             return flags
 
         except Exception as e:
 
-            print("ERROR getReviewFlags: " + str(e))
+            print("ERROR getGameFlags: " + str(e))
             sys.exit()
 
-    # KAFKA
-
-    def sendToTopic(self, review):
+    def insertGameReview(self, review):
 
         try:
 
-            producer = KafkaProducer(bootstrap_servers="{}:{}".format(self.kafkaHost, self.kafkaPort))
-            producer.send(self.kafkaTopics[randint(0, len(self.kafkaTopics)), json.dumps(review).encode()])
-            time.sleep(0.5)
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO steam_game_reviews"
+                           " (id, author_id, game_id, date_create, review)"
+                           " VALUES (%s, %s, %s, %s, %s)", review)
+            conn.commit()
+            self.pool.putconn(conn)
 
         except Exception as e:
 
-            print("ERROR sendToTopic: " + str(e))
+            print("ERROR insertGameReview: " + str(e))
+            sys.exit()
+
+    def updateFlag(self, gameId, flag):
+
+        try:
+
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            now = str(datetime.now())
+            cursor.execute("UPDATE steam_game_reviews_flag SET flag = %s, date_maj = %s WHERE game_id = %s",
+                           (flag, now, gameId))
+
+            conn.commit()
+            self.pool.putconn(conn)
+
+        except Exception as e:
+
+            print("ERROR insertGameReview: " + str(e))
+            sys.exit()

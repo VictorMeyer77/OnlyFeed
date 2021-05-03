@@ -25,8 +25,7 @@ create table if not exists steam_game_reviews (id INT PRIMARY KEY,
                                               date_create TIMESTAMP,
                                               review TEXT);
 
-create table if not exists steam_game_reviews_flag (id SERIAL PRIMARY KEY,
-                                                    game_id INT,
+create table if not exists steam_game_reviews_flag (game_id INT PRIMARY KEY,
                                                     flag VARCHAR,
                                                     date_maj TIMESTAMP);
 

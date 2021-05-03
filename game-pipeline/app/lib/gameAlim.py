@@ -5,6 +5,7 @@ import json
 import sys
 import re
 
+
 class GameAlim:
 
     def __init__(self, confSteamLink, confPostgres):
@@ -36,7 +37,7 @@ class GameAlim:
             info = self.getSteamGameInfo(gameIds[i])
 
             if info is not None:
-                self.insertSteamGeamInfo(self.formatGameInfo(info))
+                self.insertSteamGame(self.formatGameInfo(info))
             else:
                 count += 1
 
@@ -104,6 +105,7 @@ class GameAlim:
 
         try:
             release_date = str(datetime.strptime(gameInfo["release_date"]["date"], "%d %b, %Y"))
+
         except Exception:
             release_date = "1970-01-01 00:00:00"
 
@@ -177,8 +179,7 @@ class GameAlim:
             for gameId in resultReq:
                 ids.append(gameId[0])
 
-            cursor.close()
-            conn.close()
+            self.pool.putconn(conn)
             return ids
 
         except Exception as e:
@@ -186,7 +187,7 @@ class GameAlim:
             print("ERROR getPgGameIds: " + str(e))
             sys.exit()
 
-    def insertSteamGeamInfo(self, info):
+    def insertSteamGame(self, info):
 
         try:
 
@@ -212,11 +213,13 @@ class GameAlim:
                            "release_date)"
                            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", info)
 
+            cursor.execute("INSERT INTO steam_game_reviews_flag (game_id, flag, date_maj) VALUES (%s, %s, %s)",
+                           (info[0], "*", str(datetime.now())))
+
             conn.commit()
-            cursor.close()
-            conn.close()
+            self.pool.putconn(conn)
 
         except Exception as e:
 
-            print("ERROR insertSteamGeamInfo: " + str(e))
+            print("ERROR insertSteamGame: " + str(e))
             sys.exit()
