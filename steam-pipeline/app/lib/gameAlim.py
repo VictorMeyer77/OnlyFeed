@@ -169,12 +169,15 @@ class GameAlim:
 
     def getSteamGameInfo(self, gameId):
 
-        gameInfoReq = requests.get(self.infoLink + str(gameId))
-        gameInfoResponse = json.loads(gameInfoReq.content)
+        try:
+            gameInfoReq = requests.get(self.infoLink + str(gameId))
+            gameInfoResponse = json.loads(gameInfoReq.content)
 
-        if gameInfoResponse[str(gameId)]["success"]:
-            return gameInfoResponse[str(gameId)]["data"]
-        else:
+            if gameInfoResponse[str(gameId)]["success"]:
+                return gameInfoResponse[str(gameId)]["data"]
+
+        except Exception as e:
+            print("ERROR getSteamGameInfo: {}".format(str(e)))
             return None
 
     # POSTGRES
