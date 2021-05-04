@@ -103,7 +103,6 @@ class GameReviewAlim:
         except Exception as e:
 
             print("ERROR getGameFlags: " + str(e))
-            sys.exit()
 
     def insertGameReview(self, review):
 
@@ -120,7 +119,6 @@ class GameReviewAlim:
         except Exception as e:
 
             print("ERROR insertGameReview: " + str(e))
-            sys.exit()
 
     def updateFlag(self, gameId, flag):
 
@@ -138,4 +136,3 @@ class GameReviewAlim:
         except Exception as e:
 
             print("ERROR insertGameReview: " + str(e))
-            sys.exit()

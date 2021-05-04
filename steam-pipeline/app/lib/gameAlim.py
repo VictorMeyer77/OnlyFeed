@@ -5,7 +5,6 @@ import json
 import sys
 import re
 
-
 class GameAlim:
 
     def __init__(self, confSteamLink, confPostgres):
@@ -51,15 +50,16 @@ class GameAlim:
         gameId = gameInfo["steam_appid"]
         name = gameInfo["name"]
         age = int(gameInfo["required_age"])
-
-        if "supported_languages" in gameInfo.keys():
-            languages = gameInfo["supported_languages"]
-        else:
-            languages = ""
-
         windows = gameInfo["platforms"]["windows"]
         mac = gameInfo["platforms"]["mac"]
         linux = gameInfo["platforms"]["linux"]
+        publishers = ",".join(gameInfo["publishers"])
+        developers = ",".join(gameInfo["developers"])
+
+        if gameInfo["supported_languages"]:
+            languages = gameInfo["supported_languages"]
+        else:
+            languages = ""
 
         if gameInfo["pc_requirements"]:
             windows_requirements = re.sub(htmlRegex, "", gameInfo["pc_requirements"]["minimum"]).replace("\t", " ")
@@ -76,29 +76,33 @@ class GameAlim:
         else:
             linux_requirements = ""
 
-        publishers = ",".join(gameInfo["publishers"])
-        developers = ",".join(gameInfo["developers"])
-
-        if "price_overview" not in gameInfo.keys():
+        if not gameInfo["price_overview"]:
             price = 0
             currency = "EUR"
         else:
             price = gameInfo["price_overview"]["final"]
             currency = gameInfo["price_overview"]["currency"]
 
-        categories = []
-        for c in gameInfo["categories"]:
-            categories.append(c["description"])
+        if gameInfo["categories"]:
+            categories = []
+            for c in gameInfo["categories"]:
+                categories.append(c["description"])
 
-        categories = ",".join(categories)
+            categories = ",".join(categories)
+        else:
+            categories = ""
 
-        genres = []
-        for g in gameInfo["genres"]:
-            genres.append(g["description"])
+        if gameInfo["genres"]:
 
-        genres = ",".join(genres)
+            genres = []
+            for g in gameInfo["genres"]:
+                genres.append(g["description"])
 
-        if "recommendations" in gameInfo.keys():
+            genres = ",".join(genres)
+        else:
+            genres = ""
+
+        if gameInfo["recommendations"]:
             recommendations = gameInfo["recommendations"]["total"]
         else:
             recommendations = 0
