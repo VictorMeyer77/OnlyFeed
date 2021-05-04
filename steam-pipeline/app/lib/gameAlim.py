@@ -69,17 +69,17 @@ class GameAlim:
         else:
             languages = ""
 
-        if "pc_requirements" in gameInfo.keys():
+        if "pc_requirements" in gameInfo.keys() and len(gameInfo["pc_requirements"]) > 0:
             windows_requirements = re.sub(htmlRegex, "", gameInfo["pc_requirements"]["minimum"]).replace("\t", " ")
         else:
             windows_requirements = ""
 
-        if "mac_requirements" in gameInfo.keys():
+        if "mac_requirements" in gameInfo.keys() and len(gameInfo["mac_requirements"]) > 0:
             mac_requirements = re.sub(htmlRegex, "", gameInfo["mac_requirements"]["minimum"]).replace("\t", " ")
         else:
             mac_requirements = ""
 
-        if "linux_requirements" in gameInfo.keys():
+        if "linux_requirements" in gameInfo.keys() and len(gameInfo["linux_requirements"]) > 0:
             linux_requirements = re.sub(htmlRegex, "", gameInfo["linux_requirements"]["minimum"]).replace("\t", " ")
         else:
             linux_requirements = ""

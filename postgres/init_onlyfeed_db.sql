@@ -49,3 +49,16 @@ CREATE TABLE if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
                                                 type SMALLINT,
                                                 date_send TIMESTAMP,
                                                 content TEXT);
+
+
+CREATE TABLE if not exists of_user_critera (id SERIAL PRIMARY KEY,
+                                             graphism DECIMAL,
+                                             gameplay DECIMAL,
+                                             lifetime DECIMAL,
+                                             immersion DECIMAL,
+                                             extern DECIMAL,
+                                             release TIMESTAMP,
+                                             genre VARCHAR,
+                                             price INT,
+                                             age INT,
+                                             plateform VARCHAR)
