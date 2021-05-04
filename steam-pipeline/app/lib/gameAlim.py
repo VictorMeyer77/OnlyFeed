@@ -53,37 +53,46 @@ class GameAlim:
         windows = gameInfo["platforms"]["windows"]
         mac = gameInfo["platforms"]["mac"]
         linux = gameInfo["platforms"]["linux"]
-        publishers = ",".join(gameInfo["publishers"])
-        developers = ",".join(gameInfo["developers"])
 
-        if gameInfo["supported_languages"]:
+        if "publishers" in gameInfo.keys():
+            publishers = ",".join(gameInfo["publishers"])
+        else:
+            publishers = ""
+
+        if "developers" in gameInfo.keys():
+            developers = ",".join(gameInfo["developers"])
+        else:
+            developers = ""
+
+        if "supported_languages" in gameInfo.keys():
             languages = gameInfo["supported_languages"]
         else:
             languages = ""
 
-        if gameInfo["pc_requirements"]:
+        if "pc_requirements" in gameInfo.keys():
             windows_requirements = re.sub(htmlRegex, "", gameInfo["pc_requirements"]["minimum"]).replace("\t", " ")
         else:
             windows_requirements = ""
 
-        if gameInfo["mac_requirements"]:
+        if "mac_requirements" in gameInfo.keys():
             mac_requirements = re.sub(htmlRegex, "", gameInfo["mac_requirements"]["minimum"]).replace("\t", " ")
         else:
             mac_requirements = ""
 
-        if gameInfo["linux_requirements"]:
+        if "linux_requirements" in gameInfo.keys():
             linux_requirements = re.sub(htmlRegex, "", gameInfo["linux_requirements"]["minimum"]).replace("\t", " ")
         else:
             linux_requirements = ""
 
-        if not gameInfo["price_overview"]:
+        if "price_overview" not in gameInfo.keys():
             price = 0
             currency = "EUR"
         else:
             price = gameInfo["price_overview"]["final"]
             currency = gameInfo["price_overview"]["currency"]
 
-        if gameInfo["categories"]:
+        if "categories" in gameInfo.keys():
+
             categories = []
             for c in gameInfo["categories"]:
                 categories.append(c["description"])
@@ -92,7 +101,7 @@ class GameAlim:
         else:
             categories = ""
 
-        if gameInfo["genres"]:
+        if "genres" in gameInfo.keys():
 
             genres = []
             for g in gameInfo["genres"]:
@@ -102,7 +111,7 @@ class GameAlim:
         else:
             genres = ""
 
-        if gameInfo["recommendations"]:
+        if "recommendations" in gameInfo.keys():
             recommendations = gameInfo["recommendations"]["total"]
         else:
             recommendations = 0
