@@ -136,7 +136,7 @@ class GameAlim:
 
         for gameId in steamGameIds:
 
-            if gameId not in pgGameIds:
+            if gameId not in pgGameIds and gameId not in newGameIds:
                 newGameIds.append(gameId)
 
         return newGameIds
