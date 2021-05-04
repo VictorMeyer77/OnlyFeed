@@ -136,10 +136,10 @@ class GameAlim:
 
         for gameId in steamGameIds:
 
-            if gameId not in pgGameIds and gameId not in newGameIds:
+            if gameId not in pgGameIds:
                 newGameIds.append(gameId)
 
-        return newGameIds
+        return list(set(newGameIds))
 
     # STEAM API
 
@@ -185,7 +185,6 @@ class GameAlim:
         except Exception as e:
 
             print("ERROR getPgGameIds: " + str(e))
-            sys.exit()
 
     def insertSteamGame(self, info):
 
@@ -222,4 +221,3 @@ class GameAlim:
         except Exception as e:
 
             print("ERROR insertSteamGame: " + str(e))
-            sys.exit()
