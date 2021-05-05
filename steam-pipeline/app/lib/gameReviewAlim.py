@@ -19,44 +19,39 @@ class GameReviewAlim:
                                                   user=confPostgres["user"],
                                                   password=confPostgres["password"])
 
+            print("INFO: Connection établie avec {}.".format(confPostgres["database"]))
+
         except Exception as e:
 
             print("ERROR: Impossible de se connecter à la base de données")
             print(e)
             sys.exit()
 
-    def run(self, count):
+    def run(self, count, occurenceByGame):
 
         flags = self.getGameFlags()
 
-        occurenceByGame = 1 if int(len(flags["id"]) / count) < 1 else int(len(flags["id"]) / count)
+        for i in range(0, count):
 
-        for i in range(0, len(flags["id"])):
+            print("INFO: recherche des commentaires de {}.".format(flags["id"][i]))
+
+            reviews, nextCursor = self.getSteamGameReviews(flags["id"][i], flags["cursor"][i])
 
             for j in range(0, occurenceByGame):
 
-                reviews, nextCursor = None, None
-
-                if j == 0:
-
-                    reviews, nextCursor = self.getSteamGameReviews(flags["id"][i],
-                                                                   flags["cursor"][i])
-
-                else:
-
-                    reviews, nextCursor = self.getSteamGameReviews(flags["id"][i],
-                                                                   nextCursor)
-
-                if j == occurenceByGame - 1:
+                if j == occurenceByGame - 1 or reviews is None or \
+                        len(reviews) < 1 or nextCursor is None:
 
                     self.updateFlag(flags["id"][i], nextCursor)
+                    break
 
                 if reviews is not None and len(reviews) > 0:
 
                     for review in reviews:
-
                         frmtReview = self.formatGameReview(review, flags["id"][i])
                         self.insertGameReview(frmtReview)
+
+                reviews, nextCursor = self.getSteamGameReviews(flags["id"][i], nextCursor)
 
     @staticmethod
     def formatGameReview(review, gameId):
@@ -73,7 +68,7 @@ class GameReviewAlim:
 
         gameReviewRequest = requests.get(self.review_link.format(str(gameId), flag))
         gameReviewResult = json.loads(gameReviewRequest.content)
-
+        print(self.review_link.format(str(gameId), flag))
         if gameReviewResult["success"] == 1:
 
             return gameReviewResult["reviews"], gameReviewResult["cursor"]

@@ -20,6 +20,8 @@ class GameAlim:
                                                   user=confPostgres["user"],
                                                   password=confPostgres["password"])
 
+            print("INFO: Connection établie avec {}.".format(confPostgres["database"]))
+
         except Exception as e:
 
             print("ERROR: Impossible de se connecter à la base de données")
@@ -233,6 +235,7 @@ class GameAlim:
 
             conn.commit()
             self.pool.putconn(conn)
+            print("INFO: %s inséré dans la base de données.".format(info[1]))
 
         except Exception as e:
 

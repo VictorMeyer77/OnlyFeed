@@ -18,7 +18,7 @@ if __name__ == "__main__":
         sys.exit()
 
     if len(sys.argv) < 2:
-        print("ERROR: Specify command: game or review")
+        print("ERROR: Specifié une commande: \"game\" or \"review\"")
         sys.exit()
 
     if sys.argv[1] == "game":
@@ -34,15 +34,15 @@ if __name__ == "__main__":
 
     elif sys.argv[1] == "review":
 
-        if len(sys.argv) < 3:
+        if len(sys.argv) < 4:
 
-            print("ERROR: review prend un argument. Le nombre d'avis à insérér")
+            print("ERROR: review prend deux arguments. Le nombre de jeux et le nombre de page à traiter")
             sys.exit()
 
         else:
 
-            GameReviewAlim(conf["steam_link"], conf["postgres"]).run(int(sys.argv[2]))
+            GameReviewAlim(conf["steam_link"], conf["postgres"]).run(int(sys.argv[2]), int(sys.argv[3]))
 
     else:
 
-        print("ERROR: Specify command \"game\" or \"review\"")
+        print("ERROR: Specifié une commande: \"game\" or \"review\"")
