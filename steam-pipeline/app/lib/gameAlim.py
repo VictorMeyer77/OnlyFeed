@@ -5,6 +5,7 @@ import json
 import sys
 import re
 
+
 class GameAlim:
 
     def __init__(self, confSteamLink, confPostgres):
@@ -72,17 +73,23 @@ class GameAlim:
         else:
             languages = ""
 
-        if "pc_requirements" in gameInfo.keys() and len(gameInfo["pc_requirements"]) > 0:
+        if "pc_requirements" in gameInfo.keys() and \
+                gameInfo["pc_requirements"] != [] and \
+                "minimum" in gameInfo["pc_requirements"].keys():
             windows_requirements = re.sub(htmlRegex, "", gameInfo["pc_requirements"]["minimum"]).replace("\t", " ")
         else:
             windows_requirements = ""
 
-        if "mac_requirements" in gameInfo.keys() and len(gameInfo["mac_requirements"]) > 0:
+        if "mac_requirements" in gameInfo.keys() and \
+                gameInfo["mac_requirements"] != [] and \
+                "minimum" in gameInfo["mac_requirements"].keys():
             mac_requirements = re.sub(htmlRegex, "", gameInfo["mac_requirements"]["minimum"]).replace("\t", " ")
         else:
             mac_requirements = ""
 
-        if "linux_requirements" in gameInfo.keys() and len(gameInfo["linux_requirements"]) > 0:
+        if "linux_requirements" in gameInfo.keys() and \
+                gameInfo["linux_requirements"] != [] and \
+                "minimum" in gameInfo["linux_requirements"].keys():
             linux_requirements = re.sub(htmlRegex, "", gameInfo["linux_requirements"]["minimum"]).replace("\t", " ")
         else:
             linux_requirements = ""
@@ -211,7 +218,6 @@ class GameAlim:
         finally:
 
             if conn is not None:
-
                 self.pool.putconn(conn)
 
     def getPgInvalidGameIds(self):
@@ -238,7 +244,6 @@ class GameAlim:
         finally:
 
             if conn is not None:
-
                 self.pool.putconn(conn)
 
     def insertSteamGame(self, info):
@@ -282,7 +287,6 @@ class GameAlim:
         finally:
 
             if conn is not None:
-
                 self.pool.putconn(conn)
 
     def insertSteamInvalidGame(self, gameId):
@@ -304,5 +308,4 @@ class GameAlim:
         finally:
 
             if conn is not None:
-
                 self.pool.putconn(conn)
