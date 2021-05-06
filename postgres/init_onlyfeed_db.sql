@@ -19,6 +19,8 @@ create table if not exists steam_video_games (id INT PRIMARY KEY,
                                               recommendations INT,
                                               release_date TIMESTAMP);
 
+create table if not exists steam_invalid_game_ids (id INT PRIMARY KEY);
+
 create table if not exists steam_game_reviews (id INT PRIMARY KEY,
                                               author_id BIGINT,
                                               game_id INT,

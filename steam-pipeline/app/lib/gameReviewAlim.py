@@ -68,7 +68,7 @@ class GameReviewAlim:
 
         gameReviewRequest = requests.get(self.review_link.format(str(gameId), flag))
         gameReviewResult = json.loads(gameReviewRequest.content)
-        print(self.review_link.format(str(gameId), flag))
+
         if gameReviewResult["success"] == 1:
 
             return gameReviewResult["reviews"], gameReviewResult["cursor"]
@@ -79,6 +79,8 @@ class GameReviewAlim:
     # POSTGRES
 
     def getGameFlags(self):
+
+        conn = None
 
         try:
 
@@ -92,14 +94,21 @@ class GameReviewAlim:
                 flags["id"].append(res[0])
                 flags["cursor"].append(res[1])
 
-            self.pool.putconn(conn)
             return flags
 
         except Exception as e:
 
             print("ERROR getGameFlags: " + str(e))
 
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
     def insertGameReview(self, review):
+
+        conn = None
 
         try:
 
@@ -109,13 +118,20 @@ class GameReviewAlim:
                            " (id, author_id, game_id, date_create, review)"
                            " VALUES (%s, %s, %s, %s, %s)", review)
             conn.commit()
-            self.pool.putconn(conn)
 
         except Exception as e:
 
             print("ERROR insertGameReview: " + str(e))
 
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
     def updateFlag(self, gameId, flag):
+
+        conn = None
 
         try:
 
@@ -126,8 +142,13 @@ class GameReviewAlim:
                            (flag, now, gameId))
 
             conn.commit()
-            self.pool.putconn(conn)
 
         except Exception as e:
 
             print("ERROR insertGameReview: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)

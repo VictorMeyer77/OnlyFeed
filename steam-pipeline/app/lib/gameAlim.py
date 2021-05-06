@@ -33,13 +33,14 @@ class GameAlim:
         gameIds = self.getNewGameIds()
 
         i = 0
-        while i < count:
+        while i < count and i < len(gameIds):
 
             info = self.getSteamGameInfo(gameIds[i])
 
             if info is not None:
                 self.insertSteamGame(self.formatGameInfo(info))
             else:
+                self.insertSteamInvalidGame(gameIds[i])
                 count += 1
 
             i += 1
@@ -147,11 +148,12 @@ class GameAlim:
 
         steamGameIds = self.getSteamGameIds()
         pgGameIds = self.getPgGameIds()
+        pgInvalidIds = self.getPgInvalidGameIds()
         newGameIds = []
 
         for gameId in steamGameIds:
 
-            if gameId not in pgGameIds:
+            if gameId not in pgGameIds and gameId not in pgInvalidIds:
                 newGameIds.append(gameId)
 
         return list(set(newGameIds))
@@ -179,12 +181,15 @@ class GameAlim:
                 return gameInfoResponse[str(gameId)]["data"]
 
         except Exception as e:
+
             print("ERROR getSteamGameInfo: {}".format(str(e)))
             return None
 
     # POSTGRES
 
     def getPgGameIds(self):
+
+        conn = None
 
         try:
 
@@ -197,14 +202,48 @@ class GameAlim:
             for gameId in resultReq:
                 ids.append(gameId[0])
 
-            self.pool.putconn(conn)
             return ids
 
         except Exception as e:
 
             print("ERROR getPgGameIds: " + str(e))
 
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
+    def getPgInvalidGameIds(self):
+
+        conn = None
+
+        try:
+
+            ids = []
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("select id from steam_invalid_game_ids")
+            resultReq = cursor.fetchall()
+
+            for gameId in resultReq:
+                ids.append(gameId[0])
+
+            return ids
+
+        except Exception as e:
+
+            print("ERROR getPgInvalidGameIds: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
     def insertSteamGame(self, info):
+
+        conn = None
 
         try:
 
@@ -234,9 +273,36 @@ class GameAlim:
                            (info[0], "*", str(datetime.now())))
 
             conn.commit()
-            self.pool.putconn(conn)
-            print("INFO: %s inséré dans la base de données.".format(info[1]))
+            print("INFO: {} inséré dans la base de données.".format(info[1]))
 
         except Exception as e:
 
             print("ERROR insertSteamGame: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
+    def insertSteamInvalidGame(self, gameId):
+
+        conn = None
+
+        try:
+
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO steam_invalid_game_ids (id) VALUES (%s)", (gameId,))
+            conn.commit()
+            print("INFO: {} Id invalide inséré dans la base de données.".format(str(gameId)))
+
+        except Exception as e:
+
+            print("ERROR insertSteamInvalidGame: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
