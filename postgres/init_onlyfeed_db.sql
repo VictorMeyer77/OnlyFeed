@@ -39,19 +39,20 @@ create table if not exists of_game_analysis (id SERIAL PRIMARY KEY,
                                              immersion DECIMAL,
                                              extern DECIMAL);
 
+create table if not exists of_words_by_critera (id SERIAL PRIMARY KEY,
+                                                word VARCHAR,
+                                                critera_id INT);
 
 CREATE TABLE if not exists of_user (id SERIAL PRIMARY KEY,
                                     username VARCHAR,
                                     email VARCHAR,
                                     age SMALLINT);
 
-
 CREATE TABLE if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
                                                 id_user INT,
                                                 type SMALLINT,
                                                 date_send TIMESTAMP,
                                                 content TEXT);
-
 
 CREATE TABLE if not exists of_user_critera (id SERIAL PRIMARY KEY,
                                              graphism DECIMAL,
