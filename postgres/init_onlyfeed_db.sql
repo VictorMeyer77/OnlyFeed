@@ -1,4 +1,5 @@
 
+-- création des tables --
 
 create table if not exists steam_video_games (id INT PRIMARY KEY,
                                               name VARCHAR,
@@ -33,11 +34,12 @@ create table if not exists steam_game_reviews_flag (game_id INT PRIMARY KEY,
 
 create table if not exists of_game_analysis (id SERIAL PRIMARY KEY,
                                              id_game INT,
-                                             graphism DECIMAL,
-                                             gameplay DECIMAL,
-                                             lifetime DECIMAL,
-                                             immersion DECIMAL,
-                                             extern DECIMAL);
+                                             date_maj TIMESTAMP,
+                                             graphism INT,
+                                             gameplay INT,
+                                             lifetime INT,
+                                             immersion INT,
+                                             extern INT);
 
 create table if not exists of_words_by_critera (id SERIAL PRIMARY KEY,
                                                 word VARCHAR,
@@ -55,13 +57,27 @@ CREATE TABLE if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
                                                 content TEXT);
 
 CREATE TABLE if not exists of_user_critera (id SERIAL PRIMARY KEY,
-                                             graphism DECIMAL,
-                                             gameplay DECIMAL,
-                                             lifetime DECIMAL,
-                                             immersion DECIMAL,
-                                             extern DECIMAL,
+                                             graphism INT,
+                                             gameplay INT,
+                                             lifetime INT,
+                                             immersion INT,
+                                             extern INT,
                                              release TIMESTAMP,
                                              genre VARCHAR,
                                              price INT,
                                              age INT,
                                              plateform VARCHAR)
+
+-- défault insertion --
+
+insert into of_words_by_critera (critera_id, word) VALUES (0, 'graphism');
+insert into of_words_by_critera (critera_id, word) VALUES (0, 'visual');
+insert into of_words_by_critera (critera_id, word) VALUES (0, 'illustration');
+insert into of_words_by_critera (critera_id, word) VALUES (1, 'gameplay');
+insert into of_words_by_critera (critera_id, word) VALUES (1, 'playability');
+insert into of_words_by_critera (critera_id, word) VALUES (2, 'lifetime');
+insert into of_words_by_critera (critera_id, word) VALUES (2, 'durability');
+insert into of_words_by_critera (critera_id, word) VALUES (3, 'music');
+insert into of_words_by_critera (critera_id, word) VALUES (3, 'history');
+insert into of_words_by_critera (critera_id, word) VALUES (4, 'multiplayer');
+insert into of_words_by_critera (critera_id, word) VALUES (4, 'community');

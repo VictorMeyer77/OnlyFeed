@@ -1,4 +1,5 @@
 from psycopg2 import pool
+from datetime import datetime
 import sys
 
 class PostgresDao:
@@ -24,10 +25,10 @@ class PostgresDao:
     def getGameIds(self):
 
         conn = None
+        ids = []
 
         try:
 
-            ids = []
             conn = self.pool.getconn()
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM steam_video_games")
@@ -35,8 +36,6 @@ class PostgresDao:
 
             for res in resultReq:
                 ids.append(res[0])
-
-            return ids
 
         except Exception as e:
 
@@ -48,13 +47,15 @@ class PostgresDao:
 
                 self.pool.putconn(conn)
 
+        return ids
+
     def getGameReviews(self, gameId):
 
         conn = None
+        reviews = ""
 
         try:
 
-            reviews = ""
             conn = self.pool.getconn()
             cursor = conn.cursor()
             cursor.execute("SELECT review FROM steam_game_reviews WHERE game_id=%s", (gameId,))
@@ -62,8 +63,6 @@ class PostgresDao:
 
             for res in resultReq:
                 reviews += str(res[0])
-
-            return reviews
 
         except Exception as e:
 
@@ -73,4 +72,62 @@ class PostgresDao:
 
             if conn is not None:
 
+                self.pool.putconn(conn)
+
+        return reviews
+
+    def getCriteraWords(self):
+
+        conn = None
+        criteraWords = {}
+
+        try:
+
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("SELECT critera_id, word FROM of_words_by_critera")
+            resultReq = cursor.fetchall()
+
+            for res in resultReq:
+
+                if res[0] not in criteraWords.keys():
+                    criteraWords[res[0]] = []
+
+                criteraWords[res[0]].append(res[1])
+
+        except Exception as e:
+
+            print("ERROR getCriteraWords: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
+        return criteraWords
+
+    def insertGameRating(self, gameId, rate):
+
+        conn = None
+
+        try:
+
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            now = str(datetime.now())
+            cursor.execute("INSERT INTO of_game_analysis "
+                           "(id_game, date_maj, graphism, gameplay, lifetime, immersion, extern) "
+                           "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                           (gameId, now, rate))
+
+            conn.commit()
+
+        except Exception as e:
+
+            print("ERROR insertGameReview: " + str(e))
+
+        finally:
+
+            if conn is not None:
                 self.pool.putconn(conn)

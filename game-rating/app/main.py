@@ -16,4 +16,4 @@ if __name__ == "__main__":
         print("ERROR: " + str(e))
         sys.exit()
 
-    GameRating(conf["postgres"])
+    GameRating(conf["postgres"]).run()
