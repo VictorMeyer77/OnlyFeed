@@ -70,13 +70,14 @@ CREATE TABLE if not exists of_user_critera (id SERIAL PRIMARY KEY,
 
 -- défault insertion --
 
-insert into of_words_by_critera (critera_id, word) VALUES (0, 'graphism');
+insert into of_words_by_critera (critera_id, word) VALUES (0, 'graphic');
 insert into of_words_by_critera (critera_id, word) VALUES (0, 'visual');
 insert into of_words_by_critera (critera_id, word) VALUES (0, 'illustration');
 insert into of_words_by_critera (critera_id, word) VALUES (1, 'gameplay');
 insert into of_words_by_critera (critera_id, word) VALUES (1, 'playability');
 insert into of_words_by_critera (critera_id, word) VALUES (2, 'lifetime');
 insert into of_words_by_critera (critera_id, word) VALUES (2, 'durability');
+insert into of_words_by_critera (critera_id, word) VALUES (2, 'length');
 insert into of_words_by_critera (critera_id, word) VALUES (3, 'music');
 insert into of_words_by_critera (critera_id, word) VALUES (3, 'history');
 insert into of_words_by_critera (critera_id, word) VALUES (4, 'multiplayer');
