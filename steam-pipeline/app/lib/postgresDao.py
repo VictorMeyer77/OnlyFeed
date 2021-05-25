@@ -12,8 +12,7 @@ class PostgresDao:
                                                   port=confPostgres["port"],
                                                   dbname=confPostgres["database"],
                                                   user=confPostgres["user"],
-                                                  password=confPostgres["password"],
-                                                  sslmode="require")
+                                                  password=confPostgres["password"])
 
             print("INFO: Connection établie avec {}.".format(confPostgres["database"]))
 
