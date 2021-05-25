@@ -1,4 +1,4 @@
 0 8 * * 6 sudo docker run -d steam_pipeline:latest python /app/main.py game 100000
-0 8 * * 1-5 sudo docker run -d steam_pipeline:latest python /app/main.py game 20000 100
+0 8 * * 1-5 sudo docker run -d steam_pipeline:latest python /app/main.py review 20000 100
 0 8 * * 0 sudo docker run -d game_rating:latest python /app/main.py
 59 23 * * 0 sudo docker system prune -a -f
