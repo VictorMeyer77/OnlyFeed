@@ -10,7 +10,7 @@
 
   "postgres": {
 
-    "host": "192.168.1.18",
+    "host": "onlyfeed.ddns.net",
     "database": "onlyfeed",
     "port": "5432",
     "user": "of_dck",
