@@ -31,7 +31,7 @@ class PostgresDao:
 
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("SELECT distinct id FROM steam_game_reviews")
+            cursor.execute("SELECT distinct game_id FROM steam_game_reviews")
             resultReq = cursor.fetchall()
 
             for res in resultReq:
@@ -117,7 +117,7 @@ class PostgresDao:
             cursor = conn.cursor()
             now = str(datetime.now())
             cursor.execute("INSERT INTO of_game_analysis "
-                           "(id_game, date_maj, graphism, gameplay, lifetime, immersion, extern) "
+                           "(id_game, date_maj, graphic, gameplay, lifetime, immersion, extern) "
                            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                            (gameId, now, *rates))
 

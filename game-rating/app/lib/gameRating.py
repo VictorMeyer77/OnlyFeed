@@ -10,8 +10,6 @@ class GameRating:
 
     def __init__(self, confPostgres):
 
-        nltk.download('vader_lexicon')
-
         self.postgres = PostgresDao(confPostgres)
         self.nlp = spacy.load("en_core_web_lg")
         self.criteraWords = self.getCriteraNlpWords()
@@ -37,9 +35,9 @@ class GameRating:
             for k in criteraReviewSentences.keys():
                 rates[k] = int((sid.polarity_scores(" ".join(criteraReviewSentences[k]))["compound"] + 1) * 10)
 
-            for rate in rates:
+            for rate in rates.values():
 
-                if rate != 10.0:
+                if rate != 10:
 
                     self.postgres.insertGameRating(gameIds[i], list(rates.values()))
                     break
