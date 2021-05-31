@@ -1,5 +1,5 @@
 
--- création des tables --
+-- steam --
 
 create table if not exists steam_video_games (id INT PRIMARY KEY,
                                               name VARCHAR,
@@ -32,6 +32,8 @@ create table if not exists steam_game_reviews_flag (game_id INT PRIMARY KEY,
                                                     flag VARCHAR,
                                                     date_maj TIMESTAMP);
 
+-- recommandation --
+
 create table if not exists of_game_analysis (id SERIAL PRIMARY KEY,
                                              id_game INT,
                                              date_maj TIMESTAMP,
@@ -45,6 +47,20 @@ create table if not exists of_words_by_critera (id SERIAL PRIMARY KEY,
                                                 word VARCHAR,
                                                 critera_id INT);
 
+create table if not exists of_game_recommandation (id SERIAL PRIMARY KEY,
+                                                   of_user_id INTEGER,
+                                                   recommandation_type SMALLINT,
+                                                   game_id INT,
+                                                   date_create TIMESTAMP);
+
+create table if not exists of_game_evaluation (id SERIAL PRIMARY KEY,
+                                               of_user_id INTEGER,
+                                               game_id INT,
+                                               rate SMALLINT,
+                                               date_create TIMESTAMP);
+
+-- chatbot --
+
 CREATE TABLE if not exists of_user (id SERIAL PRIMARY KEY,
                                     username VARCHAR,
                                     email VARCHAR,
@@ -56,17 +72,6 @@ CREATE TABLE if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
                                                 date_send TIMESTAMP,
                                                 content TEXT);
 
-CREATE TABLE if not exists of_user_critera (id SERIAL PRIMARY KEY,
-                                             graphic INT,
-                                             gameplay INT,
-                                             lifetime INT,
-                                             immersion INT,
-                                             extern INT,
-                                             release TIMESTAMP,
-                                             genre VARCHAR,
-                                             price INT,
-                                             age INT,
-                                             plateform VARCHAR)
 
 -- défault insertion --
 
