@@ -2,20 +2,22 @@ from lib.postgresDao import PostgresDao
 from datetime import datetime
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
+from sklearn.cluster import DBSCAN
 from currency_converter import CurrencyConverter
 import numpy as np
 import matplotlib.pyplot as plt
 
 class NearFavoriteGame:
 
-    def __init__(self, postgresDao, nearestNeightboor, radius, priceCurrency="EUR"):
+    def __init__(self, postgresDao, nearestNeightboor, priceCurrency="EUR"):
 
         self.postgresDao = postgresDao
         self.priceCurrency = priceCurrency
 
         sqlData = self.postgresDao.getGameDataset()
         dataset = self.cleanData(sqlData)
-        self.network = self.clusterize(dataset[1:, :].T, nearestNeightboor, radius)
+        self.clusterize(dataset[1:, :].T, nearestNeightboor, 90, 10)
+
 
     def cleanData(self, sqlData):
 
@@ -30,18 +32,29 @@ class NearFavoriteGame:
 
         return np.array(list(dictData.values())).astype("float64")
 
-    @staticmethod
-    def clusterize(dataset, nearestNeightboor, radius):
+    def clusterize(self, dataset, nearestNeightboor, alpha, minGameByCat):
 
-        network = NearestNeighbors(n_neighbors=nearestNeightboor, radius=radius)
-        neightboors = network.fit(dataset)
-        distances, indices = neightboors.kneighbors(dataset)
-        print(distances)
-        print(distances.shape)
-        distances = np.sort(distances, axis=0)
-        distances = distances[:, 1]
-        plt.plot(distances)
-        plt.show()
+        bestEps = self.searchBestDelta(dataset, nearestNeightboor, alpha)
+        print(bestEps)
+        normData = normalize(dataset, axis=0)
+        y_pred = DBSCAN(eps=bestEps, min_samples=minGameByCat).fit_predict(normData)
+        unique, counts = np.unique(y_pred, return_counts=True)
+        print(dict(zip(unique, counts)))
+
+
+    @staticmethod
+    def searchBestDelta(dataset, nearestNeightboor, alpha):
+
+        network = NearestNeighbors(n_neighbors=nearestNeightboor)
+        normData = normalize(dataset, axis=0)
+        neightboors = network.fit(normData)
+        distances, indices = neightboors.kneighbors(normData)
+        nearNeight = np.array([distances[:, 1], range(len(distances))])
+        sortNearNeight = nearNeight[:, nearNeight[0].argsort()]
+        sizeMin = int(len(distances) * (1.0 - (100 - alpha) / 100))
+        #plt.plot(sortNearNeight[0, :])
+        #plt.show()
+        return nearNeight[0, int(sortNearNeight[1, sizeMin])]
 
 
     @staticmethod

@@ -18,4 +18,4 @@ if __name__ == "__main__":
         sys.exit()
 
     postgresDao = PostgresDao(conf["postgres"])
-    NearFavoriteGame(postgresDao, 10, 0.4)
+    NearFavoriteGame(postgresDao, 10)
