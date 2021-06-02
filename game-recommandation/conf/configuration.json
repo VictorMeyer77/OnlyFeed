@@ -1,5 +1,7 @@
 {
 
+  "modelsDir": "models",
+
   "postgres": {
 
     "host": "192.168.1.18",

@@ -6,6 +6,9 @@ from sklearn.cluster import DBSCAN
 from currency_converter import CurrencyConverter
 import numpy as np
 import matplotlib.pyplot as plt
+from joblib import dump, load
+from datetime import datetime
+
 
 class NearFavoriteGame:
 
@@ -16,16 +19,23 @@ class NearFavoriteGame:
 
         sqlData = self.postgresDao.getGameDataset()
         dataset = self.cleanData(sqlData)
-        self.clusterize(dataset[1:, :].T, nearestNeightboor, 90, 10)
-
+        dataset = np.delete(dataset, 1, axis=0)
+        model, pred = self.clusterize(dataset[1:, :].T, nearestNeightboor, 90, 10)
+        unique, counts = np.unique(pred, return_counts=True)
+        print(dict(zip(unique, counts)))
+        print()
+        plt.scatter(dataset[2, :], dataset[3, :], c=pred)
+        plt.show()
 
     def cleanData(self, sqlData):
 
         dictData = self.extractDataset(sqlData)
         dictData["price"] = self.convertPrices(dictData["price"], dictData["currency"], self.priceCurrency)
         dictData["release_date"] = self.datesToTimestamp(dictData["release_date"])
+        dictData["genres"] = self.getFirstListItem(dictData["genres"])
         dictData["genres"] = self.hashColumn(dictData["genres"])
         dictData["publishers"] = self.hashColumn(dictData["publishers"])
+        dictData["developers"] = self.getFirstListItem(dictData["developers"])
         dictData["developers"] = self.hashColumn(dictData["developers"])
 
         del dictData["currency"]
@@ -35,12 +45,21 @@ class NearFavoriteGame:
     def clusterize(self, dataset, nearestNeightboor, alpha, minGameByCat):
 
         bestEps = self.searchBestDelta(dataset, nearestNeightboor, alpha)
-        print(bestEps)
         normData = normalize(dataset, axis=0)
-        y_pred = DBSCAN(eps=bestEps, min_samples=minGameByCat).fit_predict(normData)
-        unique, counts = np.unique(y_pred, return_counts=True)
-        print(dict(zip(unique, counts)))
+        dbscan = DBSCAN(eps=bestEps, min_samples=minGameByCat)
+        pred = dbscan.fit_predict(normData)
 
+        return dbscan, pred
+
+    def loadModel(self):
+
+        return load()
+
+    @staticmethod
+    def saveModel(model, outputDir):
+
+        fileName = "model_" + str(int(datetime.now().timestamp() / 1000)) + ".joblib"
+        dump(model, outputDir, fileName)
 
     @staticmethod
     def searchBestDelta(dataset, nearestNeightboor, alpha):
@@ -52,10 +71,9 @@ class NearFavoriteGame:
         nearNeight = np.array([distances[:, 1], range(len(distances))])
         sortNearNeight = nearNeight[:, nearNeight[0].argsort()]
         sizeMin = int(len(distances) * (1.0 - (100 - alpha) / 100))
-        #plt.plot(sortNearNeight[0, :])
-        #plt.show()
+        # plt.plot(sortNearNeight[0, :])
+        # plt.show()
         return nearNeight[0, int(sortNearNeight[1, sizeMin])]
-
 
     @staticmethod
     def extractDataset(sqlResponse):
@@ -106,6 +124,16 @@ class NearFavoriteGame:
             hashs.append(abs(hash(ele)) % (10 ** 8))
 
         return hashs
+
+    @staticmethod
+    def getFirstListItem(column):
+
+        firsts = []
+
+        for ele in column:
+            firsts.append(ele.split(",")[0])
+
+        return firsts
 
     @staticmethod
     def datesToTimestamp(dateList):
