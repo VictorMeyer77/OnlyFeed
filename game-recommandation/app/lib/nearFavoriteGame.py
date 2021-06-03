@@ -3,9 +3,9 @@ from datetime import datetime
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
 from sklearn.cluster import DBSCAN
+from sklearn.neighbors import DistanceMetric
 from currency_converter import CurrencyConverter
 import numpy as np
-import matplotlib.pyplot as plt
 from joblib import dump, load
 from datetime import datetime
 
@@ -20,12 +20,8 @@ class NearFavoriteGame:
         sqlData = self.postgresDao.getGameDataset()
         dataset = self.cleanData(sqlData)
         dataset = np.delete(dataset, 1, axis=0)
-        model, pred = self.clusterize(dataset[1:, :].T, nearestNeightboor, 90, 10)
-        unique, counts = np.unique(pred, return_counts=True)
-        print(dict(zip(unique, counts)))
-        print()
-        plt.scatter(dataset[2, :], dataset[3, :], c=pred)
-        plt.show()
+        model, pred = self.clusterize(dataset, nearestNeightboor, 90, 10)
+        self.distancePerGroup(dataset, pred)
 
     def cleanData(self, sqlData):
 
@@ -44,12 +40,54 @@ class NearFavoriteGame:
 
     def clusterize(self, dataset, nearestNeightboor, alpha, minGameByCat):
 
+        dataset = dataset[1:, :].T
         bestEps = self.searchBestDelta(dataset, nearestNeightboor, alpha)
         normData = normalize(dataset, axis=0)
         dbscan = DBSCAN(eps=bestEps, min_samples=minGameByCat)
         pred = dbscan.fit_predict(normData)
 
         return dbscan, pred
+
+    @staticmethod
+    def distancePerGroup(dataset, pred):
+
+        distancesCountPerClass = {}
+        unique, counts = np.unique(pred, return_counts=True)
+
+        for classe in unique:
+
+            distancesCountPerClass[classe] = {}
+
+            for distClasse in unique:
+                distancesCountPerClass[classe][distClasse] = 0
+
+        normData = normalize(dataset[1:, :].T, axis=0)
+        distanceCalc = DistanceMetric.get_metric("minkowski")
+        distances = distanceCalc.pairwise(normData)
+
+        for i in range(distances.shape[0]):
+
+            minDist, ind = 10000.0, -1
+
+            for j in range(distances.shape[0]):
+
+                if i == j or pred[i] == pred[j] or pred[j] == -1:
+                    continue
+
+                if distances[i][j] < minDist:
+                    minDist = distances[i][j]
+                    ind = j
+
+            distancesCountPerClass[pred[i]][pred[ind]] += 1
+
+        for i in distancesCountPerClass.keys():
+
+            tot = sum(list(distancesCountPerClass[i].values()))
+
+            for j in distancesCountPerClass[i].keys():
+                distancesCountPerClass[i][j] = float(distancesCountPerClass[i][j]) / tot
+
+        return distancesCountPerClass
 
     def loadModel(self):
 
@@ -71,8 +109,7 @@ class NearFavoriteGame:
         nearNeight = np.array([distances[:, 1], range(len(distances))])
         sortNearNeight = nearNeight[:, nearNeight[0].argsort()]
         sizeMin = int(len(distances) * (1.0 - (100 - alpha) / 100))
-        # plt.plot(sortNearNeight[0, :])
-        # plt.show()
+
         return nearNeight[0, int(sortNearNeight[1, sizeMin])]
 
     @staticmethod
