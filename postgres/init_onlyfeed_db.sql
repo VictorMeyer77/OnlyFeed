@@ -49,8 +49,32 @@ create table if not exists of_words_by_critera (id SERIAL PRIMARY KEY,
 
 create table if not exists of_game_recommandation (id SERIAL PRIMARY KEY,
                                                    of_user_id INTEGER,
-                                                   recommandation_type SMALLINT,
                                                    game_id INT,
+                                                   model_id INT,
+                                                   date_create TIMESTAMP);
+
+create table if not exists of_game_recommandation_model (id SERIAL PRIMARY KEY,
+                                                   model_name VARCHAR,
+                                                   recommandation_type SMALLINT,
+                                                   note DECIMAL,
+                                                   nb_test INT,
+                                                   near_neight INT,
+                                                   alpha INT,
+                                                   nb_game_by_cat INT,
+                                                   date_maj TIMESTAMP);
+
+create table if not exists of_model_test (id SERIAL PRIMARY KEY,
+                                                   id_model INT,
+                                                   id_game_test INT,
+                                                   id_game_near INT,
+                                                   id_game_other_one INT,
+                                                   id_game_other_two INT,
+                                                   date_create TIMESTAMP);
+
+create table if not exists of_model_test_result (id SERIAL PRIMARY KEY,
+                                                   id_test INT,
+                                                   id_user INT,
+                                                   result INT,
                                                    date_create TIMESTAMP);
 
 create table if not exists of_game_evaluation (id SERIAL PRIMARY KEY,

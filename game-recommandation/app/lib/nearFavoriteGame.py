@@ -12,20 +12,19 @@ from datetime import datetime
 
 class NearFavoriteGame:
 
-    def __init__(self, postgresDao, nearestNeightboor, priceCurrency="EUR"):
+    def __init__(self, postgresDao, nearestNeightboor, alpha, minGameByCat, priceCurrency="EUR"):
 
         self.postgresDao = postgresDao
         self.priceCurrency = priceCurrency
-
+        print(self.postgresDao.getModels(0))
         sqlData = self.postgresDao.getGameDataset()
         dataset = self.cleanData(sqlData)
         dataset = np.delete(dataset, 1, axis=0)
-        model, pred = self.clusterize(dataset, nearestNeightboor, 90, 10)
-        self.distancePerGroup(dataset, pred)
+        model, pred = self.clusterize(dataset, nearestNeightboor, alpha, minGameByCat)
+        print(self.distancePerGroup(dataset, pred))
 
-    def cleanData(self, sqlData):
+    def cleanData(self, dictData):
 
-        dictData = self.extractDataset(sqlData)
         dictData["price"] = self.convertPrices(dictData["price"], dictData["currency"], self.priceCurrency)
         dictData["release_date"] = self.datesToTimestamp(dictData["release_date"])
         dictData["genres"] = self.getFirstListItem(dictData["genres"])
@@ -47,6 +46,8 @@ class NearFavoriteGame:
         pred = dbscan.fit_predict(normData)
 
         return dbscan, pred
+
+    def chooseBestModels(self, models):
 
     @staticmethod
     def distancePerGroup(dataset, pred):
@@ -111,46 +112,6 @@ class NearFavoriteGame:
         sizeMin = int(len(distances) * (1.0 - (100 - alpha) / 100))
 
         return nearNeight[0, int(sortNearNeight[1, sizeMin])]
-
-    @staticmethod
-    def extractDataset(sqlResponse):
-
-        dataset = {"id": [],
-                   "release_date": [],
-                   "genres": [],
-                   "price": [],
-                   "currency": [],
-                   "age": [],
-                   "windows": [],
-                   "mac": [],
-                   "linux": [],
-                   "publishers": [],
-                   "developers": [],
-                   "graphic": [],
-                   "gameplay": [],
-                   "lifetime": [],
-                   "immersion": [],
-                   "extern": []}
-
-        for response in sqlResponse:
-            dataset["id"].append(response[0])
-            dataset["release_date"].append(response[1])
-            dataset["genres"].append(response[2])
-            dataset["price"].append(response[3])
-            dataset["currency"].append(response[4])
-            dataset["age"].append(response[5])
-            dataset["windows"].append(response[6])
-            dataset["mac"].append(response[7])
-            dataset["linux"].append(response[8])
-            dataset["publishers"].append(response[9])
-            dataset["developers"].append(response[10])
-            dataset["graphic"].append(response[11])
-            dataset["gameplay"].append(response[12])
-            dataset["lifetime"].append(response[13])
-            dataset["immersion"].append(response[14])
-            dataset["extern"].append(response[15])
-
-        return dataset
 
     @staticmethod
     def hashColumn(col):
