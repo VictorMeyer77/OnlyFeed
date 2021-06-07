@@ -1,5 +1,7 @@
 from psycopg2 import pool
+from datetime import datetime
 import sys
+
 
 class PostgresDao:
 
@@ -70,8 +72,8 @@ class PostgresDao:
 
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("""select distinct model_name, note, nb_test, near_neight, alpha, nb_game_by_cat, date_maj
-                           from of_game_recommandation_model
+            cursor.execute("""select distinct model_name, note, nb_test, near_neight, alpha, min_game_by_cat, date_maj
+                           from of_recommandation_model
                            where recommandation_type = %s
                            order by date_maj desc""", (modelType,))
 
@@ -82,6 +84,87 @@ class PostgresDao:
         except Exception as e:
 
             print("ERROR getModels: " + str(e))
+
+        finally:
+
+            if conn is not None:
+                self.pool.putconn(conn)
+
+    def getOfUserId(self):
+
+        conn = None
+
+        try:
+
+            ids = []
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("select id from of_user")
+            resultReq = cursor.fetchall()
+
+            for res in resultReq:
+                ids.append(res[0])
+
+            return ids
+
+        except Exception as e:
+
+            print("ERROR getOfUserId: " + str(e))
+
+        finally:
+
+            if conn is not None:
+                self.pool.putconn(conn)
+
+    def getGameUserEvaluation(self):
+
+        conn = None
+
+        try:
+
+            evals = {"of_user_id": [], "game_id": [], "rate": []}
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            cursor.execute("select of_user_id, game_id, rate from of_game_user_evaluation")
+            resultReq = cursor.fetchall()
+
+            for res in resultReq:
+                evals["of_user_id"].append(res[0])
+                evals["game_id"].append(res[1])
+                evals["rate"].append(res[2])
+
+            return evals
+
+        except Exception as e:
+
+            print("ERROR getGameUserEvaluation: " + str(e))
+
+        finally:
+
+            if conn is not None:
+
+                self.pool.putconn(conn)
+
+    def insertModel(self, modelName, recommandationType, nearNeight, alpha, minGameByCat):
+
+        conn = None
+
+        try:
+
+            conn = self.pool.getconn()
+            cursor = conn.cursor()
+            now = str(datetime.now())
+            cursor.execute("INSERT INTO of_recommandation_model "
+                           "(model_name, recommandation_type, note, nb_test, "
+                           "near_neight, alpha, min_game_by_cat, date_maj) "
+                           "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                           (modelName, recommandationType, 0.5, 0, nearNeight, alpha, minGameByCat, now))
+
+            conn.commit()
+
+        except Exception as e:
+
+            print("ERROR insertModel: " + str(e))
 
         finally:
 

@@ -1,53 +1,57 @@
-from lib.postgresDao import PostgresDao
-from datetime import datetime
-from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
-from sklearn.cluster import DBSCAN
 from sklearn.neighbors import DistanceMetric
-from currency_converter import CurrencyConverter
+from .dataFormater import cleanGameData
 import numpy as np
-from joblib import dump, load
-from datetime import datetime
+from lib.trainer import Trainer
 
 
 class NearFavoriteGame:
 
-    def __init__(self, postgresDao, nearestNeightboor, alpha, minGameByCat, priceCurrency="EUR"):
+    def __init__(self, postgresDao, outputDir, nearestNeightboor, alpha, minGameByCat):
 
         self.postgresDao = postgresDao
-        self.priceCurrency = priceCurrency
-        print(self.postgresDao.getModels(0))
-        sqlData = self.postgresDao.getGameDataset()
-        dataset = self.cleanData(sqlData)
-        dataset = np.delete(dataset, 1, axis=0)
-        model, pred = self.clusterize(dataset, nearestNeightboor, alpha, minGameByCat)
-        print(self.distancePerGroup(dataset, pred))
+        self.trainer = Trainer(0, nearestNeightboor, alpha, minGameByCat, outputDir, self.postgresDao)
 
-    def cleanData(self, dictData):
+        self.run()
 
-        dictData["price"] = self.convertPrices(dictData["price"], dictData["currency"], self.priceCurrency)
-        dictData["release_date"] = self.datesToTimestamp(dictData["release_date"])
-        dictData["genres"] = self.getFirstListItem(dictData["genres"])
-        dictData["genres"] = self.hashColumn(dictData["genres"])
-        dictData["publishers"] = self.hashColumn(dictData["publishers"])
-        dictData["developers"] = self.getFirstListItem(dictData["developers"])
-        dictData["developers"] = self.hashColumn(dictData["developers"])
+    def run(self):
 
-        del dictData["currency"]
+        model, modelName = self.trainer.chooseModels()
+        dataset, pred = self.getGameDatasetWithPred(model)
+        distancePerGroup = self.distancePerGroup(dataset, pred)
+        print(distancePerGroup)
+        print(model)
+        print(modelName)
+        userIds = self.postgresDao.getOfUserId()
+        evals = self.postgresDao.getGameUserEvaluation()
 
-        return np.array(list(dictData.values())).astype("float64")
+        for userId in userIds:
+            userEval = self.getUserGameEval(userId, evals)
+            print(userEval)
 
-    def clusterize(self, dataset, nearestNeightboor, alpha, minGameByCat):
+        print(self.getUserGameEval(1, evals))
 
-        dataset = dataset[1:, :].T
-        bestEps = self.searchBestDelta(dataset, nearestNeightboor, alpha)
-        normData = normalize(dataset, axis=0)
-        dbscan = DBSCAN(eps=bestEps, min_samples=minGameByCat)
-        pred = dbscan.fit_predict(normData)
+    def getGameDatasetWithPred(self, model):
 
-        return dbscan, pred
+        dictData = self.postgresDao.getGameDataset()
+        dataset = cleanGameData(dictData)
+        formatData = dataset[1:, :].T
+        normData = normalize(formatData, axis=0)
+        pred = model.fit_predict(normData)
 
-    def chooseBestModels(self, models):
+        return dataset, pred
+
+    @staticmethod
+    def getUserGameEval(userId, evals):
+
+        userEvals = []
+
+        for i in range(len(evals["of_user_id"])):
+
+            if evals["of_user_id"][i] == userId:
+                userEvals.append((evals["game_id"][i], evals["rate"][i]))
+
+        return userEvals
 
     @staticmethod
     def distancePerGroup(dataset, pred):
@@ -89,71 +93,3 @@ class NearFavoriteGame:
                 distancesCountPerClass[i][j] = float(distancesCountPerClass[i][j]) / tot
 
         return distancesCountPerClass
-
-    def loadModel(self):
-
-        return load()
-
-    @staticmethod
-    def saveModel(model, outputDir):
-
-        fileName = "model_" + str(int(datetime.now().timestamp() / 1000)) + ".joblib"
-        dump(model, outputDir, fileName)
-
-    @staticmethod
-    def searchBestDelta(dataset, nearestNeightboor, alpha):
-
-        network = NearestNeighbors(n_neighbors=nearestNeightboor)
-        normData = normalize(dataset, axis=0)
-        neightboors = network.fit(normData)
-        distances, indices = neightboors.kneighbors(normData)
-        nearNeight = np.array([distances[:, 1], range(len(distances))])
-        sortNearNeight = nearNeight[:, nearNeight[0].argsort()]
-        sizeMin = int(len(distances) * (1.0 - (100 - alpha) / 100))
-
-        return nearNeight[0, int(sortNearNeight[1, sizeMin])]
-
-    @staticmethod
-    def hashColumn(col):
-
-        hashs = []
-
-        for ele in col:
-            hashs.append(abs(hash(ele)) % (10 ** 8))
-
-        return hashs
-
-    @staticmethod
-    def getFirstListItem(column):
-
-        firsts = []
-
-        for ele in column:
-            firsts.append(ele.split(",")[0])
-
-        return firsts
-
-    @staticmethod
-    def datesToTimestamp(dateList):
-
-        timestamps = []
-
-        for date in dateList:
-            timestamps.append(date.timestamp())
-
-        return timestamps
-
-    @staticmethod
-    def convertPrices(prices, currencies, currencyTarget):
-
-        conertPrices = []
-        converter = CurrencyConverter()
-
-        for i in range(len(prices)):
-
-            if currencies[i] not in converter.currencies:
-                print("INFO: {} non pris en charge.".format(currencies[i]))
-
-            conertPrices.append(converter.convert(prices[i], currencies[i], currencyTarget))
-
-        return conertPrices

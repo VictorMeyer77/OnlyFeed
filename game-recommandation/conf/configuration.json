@@ -1,6 +1,6 @@
 {
 
-  "modelsDir": "models",
+  "modelsDir": "../models",
 
   "postgres": {
 
