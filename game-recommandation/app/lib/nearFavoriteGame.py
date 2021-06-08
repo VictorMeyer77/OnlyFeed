@@ -3,33 +3,89 @@ from sklearn.neighbors import DistanceMetric
 from .dataFormater import cleanGameData
 import numpy as np
 from lib.trainer import Trainer
+from random import randint
 
 
 class NearFavoriteGame:
 
-    def __init__(self, postgresDao, outputDir, nearestNeightboor, alpha, minGameByCat):
+    def __init__(self, postgresDao, outputDir, nearestNeightboor, alpha, minGameByCat, nbPredictByUser):
 
         self.postgresDao = postgresDao
         self.trainer = Trainer(0, nearestNeightboor, alpha, minGameByCat, outputDir, self.postgresDao)
 
-        self.run()
+        self.run(nbPredictByUser)
 
-    def run(self):
+    def run(self, nbPredictByUser):
 
         model, modelName = self.trainer.chooseModels()
+        modelId = self.postgresDao.getModelIdByName(modelName)
         dataset, pred = self.getGameDatasetWithPred(model)
         distancePerGroup = self.distancePerGroup(dataset, pred)
-        print(distancePerGroup)
-        print(model)
-        print(modelName)
         userIds = self.postgresDao.getOfUserId()
         evals = self.postgresDao.getGameUserEvaluation()
 
         for userId in userIds:
-            userEval = self.getUserGameEval(userId, evals)
-            print(userEval)
 
-        print(self.getUserGameEval(1, evals))
+            userEvals = self.getUserGameEval(userId, evals)
+
+            if len(userEvals) < 1:
+
+                randomCat = self.getRandomCat(distancePerGroup, [-1])
+                gamesPred = self.getGamesByCat(dataset, pred, nbPredictByUser, randomCat, [])
+
+                for gamePred in gamesPred:
+                    self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
+
+            else:
+
+                categoriesSumRates = dict.fromkeys(distancePerGroup, 0.0)
+                categoriesGamesId = dict.fromkeys(distancePerGroup, [])
+                categoriesTargetDist = dict.fromkeys(distancePerGroup, 0.0)
+
+                for userEval in userEvals:
+
+                    gameEvalCat = self.getGameCat(dataset, pred, userEval[0])
+                    categoriesSumRates[gameEvalCat] += userEvals[1]
+                    categoriesGamesId[gameEvalCat].append(userEvals[0])
+
+                userCat = -2
+
+                for k in categoriesGamesId.keys():
+
+                    avg = categoriesSumRates[k] / len(categoriesGamesId[k])
+                    categoriesTargetDist[k] = 1.0 - (10.0 - avg) / 10.0
+
+                sortCat = dict(sorted(categoriesTargetDist.items(), key=lambda item: item[1], reverse=True))
+
+                tmpCat = list(sortCat.keys())[0]
+
+                if sortCat[tmpCat] > 0.9:
+
+                    userCat = tmpCat
+
+                else:
+
+                    minDist = abs(sortCat[tmpCat] - distancePerGroup[tmpCat][0])
+                    minCat = 0
+
+                    for k in distancePerGroup[tmpCat].keys()[1:]:
+
+                        if abs(sortCat[tmpCat] - distancePerGroup[tmpCat][k]) < minDist:
+
+                            minDist = sortCat[tmpCat]
+                            minCat = k
+
+                    userCat = minCat
+
+                banGameId = []
+                for userEval in userEvals:
+                    banGameId.append(userEval[0])
+
+                gamesPred = self.getGamesByCat(dataset, pred, nbPredictByUser, userCat, banGameId)
+
+                for gamePred in gamesPred:
+                    self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
+
 
     def getGameDatasetWithPred(self, model):
 
@@ -40,6 +96,53 @@ class NearFavoriteGame:
         pred = model.fit_predict(normData)
 
         return dataset, pred
+
+    def getGameCat(self, dataset, pred, gameId):
+
+        for i in range(len(pred)):
+
+            if int(dataset[0][i]) == gameId:
+
+                return pred[i]
+
+        return None
+
+
+    @staticmethod
+    def getRandomCat(dictCat, banCat):
+
+        categories = list(dictCat.keys())
+        k = categories[randint(0, len(categories))]
+
+        if len(categories) == len(banCat):
+            print("WARNING: Aucune nouvelle catégorie à retourner. -1")
+            return -1
+
+        while k in banCat:
+            k = categories[randint(0, len(categories))]
+
+        return k
+
+    @staticmethod
+    def getGamesByCat(dataset, pred, nbGame, cat, banIds):
+
+        gameIds = []
+
+        if len(pred) == len(banIds):
+            print("WARNING: Aucun nouveau jeu à retourner. []")
+            return []
+
+        for i in range(len(pred)):
+
+            if len(gameIds) == nbGame:
+                break
+
+            if pred[i] == cat:
+
+                if int(dataset[0][i]) not in banIds and int(dataset[0][i]) not in gameIds:
+                    gameIds.append(int(dataset[0][i]))
+
+        return gameIds
 
     @staticmethod
     def getUserGameEval(userId, evals):
