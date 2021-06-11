@@ -1,0 +1,106 @@
+from .dataFormater import cleanGameData
+from random import randint
+from .trainer import Trainer
+
+
+class ModelManager:
+
+    def __init__(self, postgresDao, modelType, confModels, nearestNeightboor, alpha, minGameByCat, outputDir):
+
+        self.postgresDao = postgresDao
+        self.modelType = modelType
+        self.confModels = confModels
+        self.nearestNeightboor = nearestNeightboor
+        self.alpha = alpha
+        self.minGameByCat = minGameByCat
+        self.outputDir = outputDir
+
+    def chooseModels(self):
+
+        models = self.postgresDao.getModels(self.modelType)
+        trainer = Trainer(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
+                          self.postgresDao, True)
+
+        if len(models["name"]) < 1:
+
+            dictData = self.postgresDao.getGameDataset()
+            dataset = cleanGameData(dictData)
+            model, pred = trainer.run(dataset)
+            modelName = "default"
+
+        elif len(models["name"]) > 1:
+
+            bestModelName = models["name"][0]
+            bestModelNote = models["note"][0]
+
+            for i in range(1, len(models["name"])):
+
+                if models["note"][i] > bestModelNote and models["nb_test"][i] > 4:
+                    bestModelNote = models["note"][i]
+                    bestModelName = models["name"][i]
+
+            model = trainer.loadModel(bestModelName)
+            modelName = bestModelName
+
+        else:
+
+            model = trainer.loadModel("default")
+            modelName = "default"
+
+        return model, modelName
+
+    def trainNewModels(self, nbModel):
+
+        existModels = self.postgresDao.getModels(0)
+        dictData = self.postgresDao.getGameDataset()
+        dataset = cleanGameData(dictData)
+        print(existModels)
+        newModels = []
+
+        while len(newModels) < nbModel:
+
+            if len(existModels) + len(newModels) >= \
+                    (self.confModels["nearestNeightboor"][1] - self.confModels["nearestNeightboor"][0]) / \
+                    self.confModels["nearestNeightboor"][2] \
+                    + (self.confModels["alpha"][1] - self.confModels["alpha"][0]) / self.confModels["alpha"][2] \
+                    + (self.confModels["minGameByCat"][1] - self.confModels["minGameByCat"][0]) / \
+                    self.confModels["minGameByCat"][2]:
+
+                print("WARNING: Plus aucune combinaison de paramètres possible")
+                break
+
+            else:
+
+                newModel = self.getRandomParam()
+                if not self.isParamAlreadyExist(newModel, existModels):
+                    newModels.append(newModel)
+
+            for newModel in newModels:
+                trainer = Trainer(self.modelType, newModels[0], newModels[1], newModel[2], self.outputDir,
+                                  self.postgresDao, False)
+                trainer.run(dataset)
+
+        print(newModels)
+
+    def getRandomParam(self):
+
+        randBuffer = randint(self.confModels["nearestNeightboor"][0], self.confModels["nearestNeightboor"][1])
+        neirNeight = int(randBuffer - (randBuffer % self.confModels["nearestNeightboor"][2]))
+        randBuffer = randint(self.confModels["alpha"][0], self.confModels["alpha"][1])
+        alpha = int(randBuffer - (randBuffer % self.confModels["alpha"][2]))
+        randBuffer = randint(self.confModels["minGameByCat"][0], self.confModels["minGameByCat"][1])
+        minGameByCat = int(randBuffer - (randBuffer % self.confModels["minGameByCat"][2]))
+
+        return neirNeight, alpha, minGameByCat
+
+    @staticmethod
+    def isParamAlreadyExist(params, existModels):
+
+        for i in range(len(existModels["near_neight"])):
+
+            if existModels["near_neight"][i] == params[0] and \
+                    existModels["alpha"][i] == params[1] and \
+                    existModels["min_game_by_cat"][i] == params[2]:
+                return True
+
+        return False

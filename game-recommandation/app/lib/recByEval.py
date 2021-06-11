@@ -2,22 +2,20 @@ from sklearn.preprocessing import normalize
 from sklearn.neighbors import DistanceMetric
 from .dataFormater import cleanGameData
 import numpy as np
-from lib.trainer import Trainer
 from random import randint
 
 
-class NearFavoriteGame:
+class RecByEval:
 
-    def __init__(self, postgresDao, outputDir, nearestNeightboor, alpha, minGameByCat, nbPredictByUser):
+    def __init__(self, postgresDao, modelManager, nbPredictByUser):
 
         self.postgresDao = postgresDao
-        self.trainer = Trainer(0, nearestNeightboor, alpha, minGameByCat, outputDir, self.postgresDao)
-
         self.run(nbPredictByUser)
+        self.modelManager = modelManager
 
     def run(self, nbPredictByUser):
 
-        model, modelName = self.trainer.chooseModels()
+        model, modelName = self.modelManager.chooseModels()
         modelId = self.postgresDao.getModelIdByName(modelName)
         dataset, pred = self.getGameDatasetWithPred(model)
         distancePerGroup = self.distancePerGroup(dataset, pred)
@@ -39,27 +37,23 @@ class NearFavoriteGame:
             else:
 
                 categoriesSumRates = dict.fromkeys(distancePerGroup, 0.0)
-                categoriesGamesId = dict.fromkeys(distancePerGroup, [])
+                categoriesGamesId = {key: list([]) for key in distancePerGroup.keys()}
                 categoriesTargetDist = dict.fromkeys(distancePerGroup, 0.0)
 
                 for userEval in userEvals:
-
                     gameEvalCat = self.getGameCat(dataset, pred, userEval[0])
-                    categoriesSumRates[gameEvalCat] += userEvals[1]
-                    categoriesGamesId[gameEvalCat].append(userEvals[0])
-
-                userCat = -2
+                    categoriesSumRates[gameEvalCat] += userEval[1]
+                    categoriesGamesId[gameEvalCat].append(userEval[0])
 
                 for k in categoriesGamesId.keys():
+                    avg = categoriesSumRates[k] / len(categoriesGamesId[k]) if len(categoriesGamesId[k]) > 0 else 0.0
+                    categoriesTargetDist[k] = (10.0 - avg) / 10.0
 
-                    avg = categoriesSumRates[k] / len(categoriesGamesId[k])
-                    categoriesTargetDist[k] = 1.0 - (10.0 - avg) / 10.0
-
-                sortCat = dict(sorted(categoriesTargetDist.items(), key=lambda item: item[1], reverse=True))
+                sortCat = dict(sorted(categoriesTargetDist.items(), key=lambda item: item[1]))
 
                 tmpCat = list(sortCat.keys())[0]
 
-                if sortCat[tmpCat] > 0.9:
+                if sortCat[tmpCat] < 0.1:
 
                     userCat = tmpCat
 
@@ -68,10 +62,9 @@ class NearFavoriteGame:
                     minDist = abs(sortCat[tmpCat] - distancePerGroup[tmpCat][0])
                     minCat = 0
 
-                    for k in distancePerGroup[tmpCat].keys()[1:]:
+                    for k in list(distancePerGroup[tmpCat].keys())[1:]:
 
-                        if abs(sortCat[tmpCat] - distancePerGroup[tmpCat][k]) < minDist:
-
+                        if k != tmpCat and abs(sortCat[tmpCat] - distancePerGroup[tmpCat][k]) < minDist:
                             minDist = sortCat[tmpCat]
                             minCat = k
 
@@ -86,7 +79,6 @@ class NearFavoriteGame:
                 for gamePred in gamesPred:
                     self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
 
-
     def getGameDatasetWithPred(self, model):
 
         dictData = self.postgresDao.getGameDataset()
@@ -97,16 +89,15 @@ class NearFavoriteGame:
 
         return dataset, pred
 
-    def getGameCat(self, dataset, pred, gameId):
+    @staticmethod
+    def getGameCat(dataset, pred, gameId):
 
         for i in range(len(pred)):
 
             if int(dataset[0][i]) == gameId:
-
                 return pred[i]
 
         return None
-
 
     @staticmethod
     def getRandomCat(dictCat, banCat):

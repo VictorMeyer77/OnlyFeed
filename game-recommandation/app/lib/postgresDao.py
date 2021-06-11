@@ -229,7 +229,7 @@ class PostgresDao:
                   "nb_test": [],
                   "near_neight": [],
                   "alpha": [],
-                  "nb_game_by_cat": [],
+                  "min_game_by_cat": [],
                   "date_maj": []}
 
         for response in sqlResponse:
@@ -238,7 +238,7 @@ class PostgresDao:
             models["nb_test"].append(response[2])
             models["near_neight"].append(response[3])
             models["alpha"].append(response[4])
-            models["nb_game_by_cat"].append(response[5])
+            models["min_game_by_cat"].append(response[5])
             models["date_maj"].append(response[6])
 
         return models

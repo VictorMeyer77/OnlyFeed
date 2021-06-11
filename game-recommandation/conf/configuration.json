@@ -2,6 +2,14 @@
 
   "modelsDir": "../models",
 
+  "modelParams": {
+
+    "nearestNeightboor": [1, 50, 1],
+    "alpha": [1, 100, 1],
+    "minGameByCat": [5, 50, 1]
+
+  },
+
   "postgres": {
 
     "host": "192.168.1.18",
