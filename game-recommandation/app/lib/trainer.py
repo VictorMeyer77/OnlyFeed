@@ -28,14 +28,21 @@ class Trainer:
         self.postgresDao.insertModel(self.fileName, self.modelType, self.nearestNeightboor,
                                      self.alpha, self.minGameByCat)
 
-    def clusterize(self, dataset):
-        dataset = dataset[1:, :].T
-        bestEps = self.searchBestEps(dataset)
-        normData = normalize(dataset, axis=0)
-        dbscan = DBSCAN(eps=bestEps, min_samples=self.minGameByCat)
-        pred = dbscan.fit_predict(normData)
+    def clusterize(self, dataset, model=None):
 
-        return dbscan, pred
+        dataset = dataset[1:, :].T
+        normData = normalize(dataset, axis=0)
+
+        if model is None:
+            bestEps = self.searchBestEps(dataset)
+            model = DBSCAN(eps=bestEps, min_samples=self.minGameByCat)
+            pred = model.fit_predict(normData)
+
+        else:
+
+            pred = model.fit_predict(normData)
+
+        return model, pred
 
     def searchBestEps(self, dataset):
         network = NearestNeighbors(n_neighbors=self.nearestNeightboor)

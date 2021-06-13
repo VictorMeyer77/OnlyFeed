@@ -4,13 +4,11 @@ from .dataFormater import cleanGameData
 import numpy as np
 from random import randint
 
-
 class RecByEval:
 
-    def __init__(self, postgresDao, modelManager, nbPredictByUser):
+    def __init__(self, postgresDao, modelManager):
 
         self.postgresDao = postgresDao
-        self.run(nbPredictByUser)
         self.modelManager = modelManager
 
     def run(self, nbPredictByUser):

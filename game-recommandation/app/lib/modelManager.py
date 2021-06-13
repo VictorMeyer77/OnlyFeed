@@ -1,18 +1,20 @@
 from .dataFormater import cleanGameData
-from random import randint
 from .trainer import Trainer
+from random import randint
+import numpy as np
+import os
 
 
 class ModelManager:
 
-    def __init__(self, postgresDao, modelType, confModels, nearestNeightboor, alpha, minGameByCat, outputDir):
+    def __init__(self, postgresDao, modelType, confModels, outputDir):
 
         self.postgresDao = postgresDao
         self.modelType = modelType
         self.confModels = confModels
-        self.nearestNeightboor = nearestNeightboor
-        self.alpha = alpha
-        self.minGameByCat = minGameByCat
+        self.nearestNeightboor = confModels["defaultNearestNeightboor"]
+        self.alpha = confModels["defaultAlpha"]
+        self.minGameByCat = confModels["defaultMinGameByCat"]
         self.outputDir = outputDir
 
     def chooseModels(self):
@@ -81,6 +83,55 @@ class ModelManager:
                 trainer.run(dataset)
 
         print(newModels)
+
+    def createModelTest(self, dataset, pred, idModel):
+
+        testGameIndex = np.where(pred != -1)[randint(0, len(np.where(pred != -1)))]
+        testGameId = dataset[0][testGameIndex]
+        testCat = pred[testGameIndex]
+
+        nearGameIndexs = np.delete(np.where(pred == testCat), testGameIndex)
+        nearGameId = dataset[0][nearGameIndexs[randint(0, len(nearGameIndexs))]]
+
+        indexGameOne = randint(0, len(np.where(pred != testCat & pred != -1)))
+        idGameOne = dataset[0][np.where(pred != testCat & pred != -1)[indexGameOne]]
+        catGameOne = pred[indexGameOne]
+
+        indexGameTwo = randint(0, len(np.where(pred != testCat & pred != -1 & pred != catGameOne)))
+        idGameTwo = dataset[0][np.where(pred != testCat & pred != -1 & pred != catGameOne)[indexGameTwo]]
+
+        self.postgresDao.insertModelTest(idModel, testGameId, nearGameId, idGameOne, idGameTwo)
+
+    def generateTestForModels(self, nbTestForModel):
+
+        trainer = Trainer(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
+                          self.postgresDao)
+
+        dictData = self.postgresDao.getGameDataset()
+        dataset = cleanGameData(dictData)
+
+        for file in os.listdir(self.outputDir):
+
+            if file != ".gitignore":
+                modelName = file.replace(".joblib", "")
+
+                model = trainer.loadModel(modelName)
+                model, pred = trainer.clusterize(dataset, model)
+                idModel = self.postgresDao.getModelIdByName(modelName)
+
+                for i in range(nbTestForModel):
+
+                    self.createModelTest(dataset, pred, idModel)
+
+    def updateModelRates(self):
+
+        modelIds = self.postgresDao.getModelIds()
+
+        for modelId in modelIds:
+
+            rates = self.postgresDao.getModelRatesById(modelId)
+            avg = np.average(np.array(rates))
+            self.postgresDao.updateModelRecRate(modelId, avg, len(rates))
 
     def getRandomParam(self):
 

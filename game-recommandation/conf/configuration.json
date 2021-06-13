@@ -6,7 +6,11 @@
 
     "nearestNeightboor": [1, 50, 1],
     "alpha": [1, 100, 1],
-    "minGameByCat": [5, 50, 1]
+    "minGameByCat": [5, 50, 1],
+
+    "defaultNearestNeightboor": 10,
+    "defaultAlpha": 90,
+    "defaultMinGameByCat": 10
 
   },
 

@@ -1,6 +1,6 @@
 from lib.postgresDao import PostgresDao
-from lib.nearFavoriteGame import NearFavoriteGame
-from lib.trainer import Trainer
+from lib.recByEval import RecByEval
+from lib.modelManager import ModelManager
 import json
 import sys
 
@@ -19,6 +19,35 @@ if __name__ == "__main__":
         sys.exit()
 
     postgresDao = PostgresDao(conf["postgres"])
-    trainer = Trainer(0, 10, 90, 20, conf["modelsDir"], postgresDao, conf["modelParams"])
-    #NearFavoriteGame(postgresDao, trainer, 5)
-    trainer.trainNewModels(3)
+    modelManager = ModelManager(postgresDao,
+                                0,
+                                conf["modelParams"],
+                                conf["modelsDir"])
+
+    if sys.argv[1] == "genrec":
+
+        if len(sys.argv) < 3:
+
+            print("ERROR: genrec prend un argument: le nombre de recommandations par user.")
+
+        else:
+
+            rec = RecByEval(postgresDao, modelManager)
+            rec.run(sys.argv[2])
+
+    elif sys.argv[1] == "genmod":
+
+        if len(sys.argv) < 4:
+
+            print("ERROR: genrmod prend deux argument: "
+                  "le nombre de nouveaux modèles à créer et le nombre de test à générer par modèle.")
+
+        else:
+
+            modelManager.trainNewModels(sys.argv[2])
+            modelManager.generateTestForModels(sys.argv[3])
+            modelManager.updateModelRates()
+
+    else:
+
+        print("ERROR: Spécifier une commande: genrec ou genmod.")
