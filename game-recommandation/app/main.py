@@ -33,7 +33,7 @@ if __name__ == "__main__":
         else:
 
             rec = RecByEval(postgresDao, modelManager)
-            rec.run(sys.argv[2])
+            rec.run(int(sys.argv[2]))
 
     elif sys.argv[1] == "genmod":
 
@@ -44,8 +44,8 @@ if __name__ == "__main__":
 
         else:
 
-            modelManager.trainNewModels(sys.argv[2])
-            modelManager.generateTestForModels(sys.argv[3])
+            modelManager.trainNewModels(int(sys.argv[2]))
+            modelManager.generateTestForModels(int(sys.argv[3]))
             modelManager.updateModelRates()
 
     else:

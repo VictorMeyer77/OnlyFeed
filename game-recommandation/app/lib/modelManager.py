@@ -86,18 +86,18 @@ class ModelManager:
 
     def createModelTest(self, dataset, pred, idModel):
 
-        testGameIndex = np.where(pred != -1)[randint(0, len(np.where(pred != -1)))]
+        testGameIndex = np.where(pred != -1)[randint(0, len(np.where(pred != -1)) - 1)]
         testGameId = dataset[0][testGameIndex]
         testCat = pred[testGameIndex]
 
         nearGameIndexs = np.delete(np.where(pred == testCat), testGameIndex)
-        nearGameId = dataset[0][nearGameIndexs[randint(0, len(nearGameIndexs))]]
+        nearGameId = dataset[0][nearGameIndexs[randint(0, len(nearGameIndexs) - 1)]]
 
-        indexGameOne = randint(0, len(np.where(pred != testCat & pred != -1)))
+        indexGameOne = randint(0, len(np.where(pred != testCat & pred != -1)) - 1)
         idGameOne = dataset[0][np.where(pred != testCat & pred != -1)[indexGameOne]]
         catGameOne = pred[indexGameOne]
 
-        indexGameTwo = randint(0, len(np.where(pred != testCat & pred != -1 & pred != catGameOne)))
+        indexGameTwo = randint(0, len(np.where(pred != testCat & pred != -1 & pred != catGameOne)) - 1)
         idGameTwo = dataset[0][np.where(pred != testCat & pred != -1 & pred != catGameOne)[indexGameTwo]]
 
         self.postgresDao.insertModelTest(idModel, testGameId, nearGameId, idGameOne, idGameTwo)

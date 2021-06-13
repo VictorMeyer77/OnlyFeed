@@ -13,21 +13,32 @@ class RecByEval:
 
     def run(self, nbPredictByUser):
 
+        dictData = self.postgresDao.getGameDataset()
+        dataset = cleanGameData(dictData)
+        print("INFO: Comparaison de {} jeux.".format(len(dataset[0])))
+
         model, modelName = self.modelManager.chooseModels()
         modelId = self.postgresDao.getModelIdByName(modelName)
-        dataset, pred = self.getGameDatasetWithPred(model)
+        print("INFO: Meilleur modèle: id -> {0}, name -> {1}.".format(modelId, modelName))
+
+        pred = self.getModelPred(model, dataset)
         distancePerGroup = self.distancePerGroup(dataset, pred)
+        print("INFO: Distance par groupe: {}.".format(distancePerGroup))
+
         userIds = self.postgresDao.getOfUserId()
         evals = self.postgresDao.getGameUserEvaluation()
+        print("INFO: Traitement des {0} utilisateurs et {1} évaluations.".format(len(userIds), len(evals)))
 
         for userId in userIds:
 
             userEvals = self.getUserGameEval(userId, evals)
+            print("INFO: Traitement des {0} évaluations de l'utilisateur {1}.".format(len(userEvals), userId))
 
             if len(userEvals) < 1:
 
                 randomCat = self.getRandomCat(distancePerGroup, [-1])
                 gamesPred = self.getGamesByCat(dataset, pred, nbPredictByUser, randomCat, [])
+                print("INFO: Catégorie aléatoire {0} pour l'utilisateur {1}".format(randomCat, userId))
 
                 for gamePred in gamesPred:
                     self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
@@ -48,6 +59,7 @@ class RecByEval:
                     categoriesTargetDist[k] = (10.0 - avg) / 10.0
 
                 sortCat = dict(sorted(categoriesTargetDist.items(), key=lambda item: item[1]))
+                print("INFO: Distances par categorie pour l'utilisateur {0}: {1}.".format(userId, sortCat))
 
                 tmpCat = list(sortCat.keys())[0]
 
@@ -68,6 +80,8 @@ class RecByEval:
 
                     userCat = minCat
 
+                print("INFO: Categorie de l'utilisateur {0}: {1}.".format(userId, userCat))
+
                 banGameId = []
                 for userEval in userEvals:
                     banGameId.append(userEval[0])
@@ -77,15 +91,14 @@ class RecByEval:
                 for gamePred in gamesPred:
                     self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
 
-    def getGameDatasetWithPred(self, model):
+    @staticmethod
+    def getModelPred(model, dataset):
 
-        dictData = self.postgresDao.getGameDataset()
-        dataset = cleanGameData(dictData)
         formatData = dataset[1:, :].T
         normData = normalize(formatData, axis=0)
         pred = model.fit_predict(normData)
 
-        return dataset, pred
+        return pred
 
     @staticmethod
     def getGameCat(dataset, pred, gameId):
@@ -101,14 +114,14 @@ class RecByEval:
     def getRandomCat(dictCat, banCat):
 
         categories = list(dictCat.keys())
-        k = categories[randint(0, len(categories))]
+        k = categories[randint(0, len(categories) - 1)]
 
         if len(categories) == len(banCat):
             print("WARNING: Aucune nouvelle catégorie à retourner. -1")
             return -1
 
         while k in banCat:
-            k = categories[randint(0, len(categories))]
+            k = categories[randint(0, len(categories) - 1)]
 
         return k
 
@@ -121,15 +134,15 @@ class RecByEval:
             print("WARNING: Aucun nouveau jeu à retourner. []")
             return []
 
-        for i in range(len(pred)):
-
-            if len(gameIds) == nbGame:
-                break
+        i = 0
+        while i < len(pred) and len(gameIds) < nbGame:
 
             if pred[i] == cat:
 
                 if int(dataset[0][i]) not in banIds and int(dataset[0][i]) not in gameIds:
                     gameIds.append(int(dataset[0][i]))
+
+            i += 1
 
         return gameIds
 
