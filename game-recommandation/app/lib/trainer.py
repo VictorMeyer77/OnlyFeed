@@ -19,24 +19,35 @@ class Trainer:
         self.postgresDao = postgresDao
         self.modelType = modelType
         self.default = default
-        self.fileName = self.getFileName()
+        self.modelName = self.getModelName()
 
     def run(self, dataset):
 
         model, pred = self.clusterize(dataset)
-        self.saveModel(model)
-        self.postgresDao.insertModel(self.fileName, self.modelType, self.nearestNeightboor,
-                                     self.alpha, self.minGameByCat)
+
+        if model is not None and pred is not None:
+            self.saveModel(model)
+            self.postgresDao.insertModel(self.modelName, self.modelType, self.nearestNeightboor,
+                                         self.alpha, self.minGameByCat)
 
     def clusterize(self, dataset, model=None):
 
-        dataset = dataset[1:, :].T
-        normData = normalize(dataset, axis=0)
+        datasetNoId = dataset[1:, :].T
+        normData = normalize(datasetNoId, axis=0)
 
         if model is None:
-            bestEps = self.searchBestEps(dataset)
-            model = DBSCAN(eps=bestEps, min_samples=self.minGameByCat)
-            pred = model.fit_predict(normData)
+            bestEps = self.searchBestEps(datasetNoId)
+
+            if bestEps < 0.0000000001:
+
+                print("ERROR: eps {} est une valeur négative. Paramètres invalides.".format(bestEps))
+                model = None
+                pred = None
+
+            else:
+
+                model = DBSCAN(eps=bestEps, min_samples=self.minGameByCat)
+                pred = model.fit_predict(normData)
 
         else:
 
@@ -45,24 +56,25 @@ class Trainer:
         return model, pred
 
     def searchBestEps(self, dataset):
+
         network = NearestNeighbors(n_neighbors=self.nearestNeightboor)
         normData = normalize(dataset, axis=0)
         neightboors = network.fit(normData)
         distances, indices = neightboors.kneighbors(normData)
         nearNeight = np.array([distances[:, 1], range(len(distances))])
         sortNearNeight = nearNeight[:, nearNeight[0].argsort()]
-        sizeMin = int(len(distances) * (1.0 - (100 - self.alpha) / 100))
+        sizeMin = int(len(distances) * (1.0 - (100 - self.alpha) / 100)) - 1
 
         return nearNeight[0, int(sortNearNeight[1, sizeMin])]
 
     def loadModel(self, name):
+
         return load(os.path.join(self.outputDir, name + ".joblib"))
 
     def saveModel(self, model):
 
-        dump(model, os.path.join(self.outputDir, self.fileName))
+        dump(model, os.path.join(self.outputDir, self.modelName + ".joblib"))
 
-    def getFileName(self):
+    def getModelName(self):
 
-        return "model_" + str(int(datetime.now().timestamp() / 1000)) + ".joblib" \
-            if not self.default else "default.joblib"
+        return "model_" + str(int(datetime.now().timestamp())) if not self.default else "default"

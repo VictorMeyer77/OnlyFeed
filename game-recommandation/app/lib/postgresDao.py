@@ -143,7 +143,6 @@ class PostgresDao:
             if conn is not None:
                 self.pool.putconn(conn)
 
-
     def getOfUserId(self):
 
         conn = None
@@ -311,7 +310,7 @@ class PostgresDao:
             cursor.execute("UPDATE of_recommandation_model "
                            "SET note = %s, nb_test = %s "
                            "WHERE id = %s",
-                           (idModel, rate, nbTest))
+                           (rate, nbTest, idModel))
 
             conn.commit()
 

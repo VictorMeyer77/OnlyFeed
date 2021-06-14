@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
         if len(sys.argv) < 4:
 
-            print("ERROR: genrmod prend deux argument: "
+            print("ERROR: genmod prend deux argument: "
                   "le nombre de nouveaux modèles à créer et le nombre de test à générer par modèle.")
 
         else:

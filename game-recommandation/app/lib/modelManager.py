@@ -1,6 +1,7 @@
 from .dataFormater import cleanGameData
 from .trainer import Trainer
 from random import randint
+from time import sleep
 import numpy as np
 import os
 
@@ -16,6 +17,7 @@ class ModelManager:
         self.alpha = confModels["defaultAlpha"]
         self.minGameByCat = confModels["defaultMinGameByCat"]
         self.outputDir = outputDir
+        self.chooseModels()
 
     def chooseModels(self):
 
@@ -23,19 +25,26 @@ class ModelManager:
         trainer = Trainer(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
                           self.postgresDao, True)
 
+        print("INFO: {0} modèles de type {1}.".format(len(models["name"]), self.modelType))
+
         if len(models["name"]) < 1:
 
+            print("INFO: Entrainement du modèle par défault...")
             dictData = self.postgresDao.getGameDataset()
             dataset = cleanGameData(dictData)
-            model, pred = trainer.run(dataset)
+            trainer.run(dataset)
+            model = trainer.loadModel("default")
             modelName = "default"
 
         elif len(models["name"]) > 1:
 
-            bestModelName = models["name"][0]
-            bestModelNote = models["note"][0]
+            bestModelName = "default"
+            bestModelNote = models["note"][models["name"].index("default")]
 
-            for i in range(1, len(models["name"])):
+            for i in range(0, len(models["name"])):
+
+                if models["name"][i] == "default":
+                    continue
 
                 if models["note"][i] > bestModelNote and models["nb_test"][i] > 4:
                     bestModelNote = models["note"][i]
@@ -43,6 +52,8 @@ class ModelManager:
 
             model = trainer.loadModel(bestModelName)
             modelName = bestModelName
+
+            print("INFO: Meilleur modèle: {}.".format(modelName))
 
         else:
 
@@ -54,9 +65,12 @@ class ModelManager:
     def trainNewModels(self, nbModel):
 
         existModels = self.postgresDao.getModels(0)
+        print("INFO: {0} modèles de type {1}.".format(len(existModels["name"]), self.modelType))
+
         dictData = self.postgresDao.getGameDataset()
         dataset = cleanGameData(dictData)
-        print(existModels)
+        print("INFO: Dataset composé de {} jeux.".format(len(dataset[0, :])))
+
         newModels = []
 
         while len(newModels) < nbModel:
@@ -77,30 +91,15 @@ class ModelManager:
                 if not self.isParamAlreadyExist(newModel, existModels):
                     newModels.append(newModel)
 
-            for newModel in newModels:
-                trainer = Trainer(self.modelType, newModels[0], newModels[1], newModel[2], self.outputDir,
-                                  self.postgresDao, False)
-                trainer.run(dataset)
+        print("INFO: Entrainement de {} nouveaux modèles...".format(len(newModels)))
 
-        print(newModels)
+        for newModel in newModels:
+            print("INFO: Entrainement {}.".format(newModel))
 
-    def createModelTest(self, dataset, pred, idModel):
-
-        testGameIndex = np.where(pred != -1)[randint(0, len(np.where(pred != -1)) - 1)]
-        testGameId = dataset[0][testGameIndex]
-        testCat = pred[testGameIndex]
-
-        nearGameIndexs = np.delete(np.where(pred == testCat), testGameIndex)
-        nearGameId = dataset[0][nearGameIndexs[randint(0, len(nearGameIndexs) - 1)]]
-
-        indexGameOne = randint(0, len(np.where(pred != testCat & pred != -1)) - 1)
-        idGameOne = dataset[0][np.where(pred != testCat & pred != -1)[indexGameOne]]
-        catGameOne = pred[indexGameOne]
-
-        indexGameTwo = randint(0, len(np.where(pred != testCat & pred != -1 & pred != catGameOne)) - 1)
-        idGameTwo = dataset[0][np.where(pred != testCat & pred != -1 & pred != catGameOne)[indexGameTwo]]
-
-        self.postgresDao.insertModelTest(idModel, testGameId, nearGameId, idGameOne, idGameTwo)
+            trainer = Trainer(self.modelType, newModel[0], newModel[1], newModel[2], self.outputDir,
+                              self.postgresDao, False)
+            trainer.run(dataset)
+            sleep(1)
 
     def generateTestForModels(self, nbTestForModel):
 
@@ -113,25 +112,86 @@ class ModelManager:
         for file in os.listdir(self.outputDir):
 
             if file != ".gitignore":
+
                 modelName = file.replace(".joblib", "")
+                idModel = self.postgresDao.getModelIdByName(modelName)
 
                 model = trainer.loadModel(modelName)
                 model, pred = trainer.clusterize(dataset, model)
-                idModel = self.postgresDao.getModelIdByName(modelName)
+
+                print(
+                    "INFO: Génération de {} tests pour le modèle {} id {}.".format(nbTestForModel, modelName, idModel))
 
                 for i in range(nbTestForModel):
-
                     self.createModelTest(dataset, pred, idModel)
+
+    def createModelTest(self, dataset, pred, idModel):
+
+        bufferIndexs = np.where(pred != -1)[0]
+        testGameIndex = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
+        testGameId = int(dataset[0][testGameIndex])
+        testCat = pred[testGameIndex]
+
+        print("INFO: Modèle {} - Jeu référence {} - catégorie {} - taille de la catégorie {}."
+              .format(idModel, testGameId, testCat, len(np.where(pred == testCat)[0])))
+
+        if len(np.where(pred == testCat)[0]) < 2:
+            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
+            return
+
+        nearGameId = testGameId
+
+        while nearGameId == testGameId:
+            bufferIndexs = np.where(pred == testCat)[0]
+            indexNearGame = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
+            nearGameId = int(dataset[0][indexNearGame])
+
+        print("INFO: Modèle {} - Jeu proche {}.".format(idModel, nearGameId))
+
+        bufferIndexs = np.where((pred != testCat) & (pred != -1))[0]
+
+        if len(bufferIndexs) < 2:
+            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
+            return
+
+        indexGameOne = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
+        idGameOne = int(dataset[0][indexGameOne])
+        catGameOne = pred[indexGameOne]
+
+        print("INFO: Modèle {} - Jeu éloigné 1 {} - catégorie {}.".format(idModel, idGameOne, catGameOne))
+
+        bufferIndexs = np.where((pred != testCat) & (pred != -1) & (pred != catGameOne))[0]
+
+        if len(bufferIndexs) < 2:
+            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
+            return
+
+        indexGameTwo = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
+        idGameTwo = int(dataset[0][indexGameTwo])
+
+        print("INFO: Modèle {} - Jeu éloigné 2 {} - catégorie {}.".format(idModel, idGameTwo, pred[indexGameTwo]))
+
+        self.postgresDao.insertModelTest(idModel, testGameId, nearGameId, idGameOne, idGameTwo)
 
     def updateModelRates(self):
 
-        modelIds = self.postgresDao.getModelIds()
+        modelIds = self.postgresDao.getModelIds(self.modelType)
+
+        print("INFO: Mise à jour des notes des {} modèles existant.".format(len(modelIds)))
 
         for modelId in modelIds:
 
             rates = self.postgresDao.getModelRatesById(modelId)
-            avg = np.average(np.array(rates))
-            self.postgresDao.updateModelRecRate(modelId, avg, len(rates))
+
+            if len(rates) > 0:
+
+                avg = np.average(np.array(rates))
+                self.postgresDao.updateModelRecRate(modelId, avg, len(rates))
+                print("INFO: Modèle {} - {} notes - moyenne {}.".format(modelId, len(rates), avg))
+
+            else:
+
+                print("INFO: Aucune note pour le modèle {}.".format(modelId))
 
     def getRandomParam(self):
 
