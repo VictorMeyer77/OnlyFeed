@@ -20,9 +20,9 @@ sudo /usr/bin/crontab newcron.txt
 rm newcron.txt
 
 # création des images
-sudo docker build -t steam_pipeline ../steam-pipeline/.
-sudo docker build -t game_rating ../game-rating/.
-sudo docker build -t game_recommandation ../game-recommandation/.
+sudo docker build -t steam_pipeline steam-pipeline/.
+sudo docker build -t game_rating game-rating/.
+sudo docker build -t game_recommandation game-recommandation/.
 
 # lancement docker-compose
-sudo docker-compose -f ../docker-compose.yml up -d
+sudo docker-compose -f docker-compose.yml up -d
