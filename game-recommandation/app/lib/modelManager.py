@@ -1,9 +1,8 @@
 from .dataFormater import cleanGameData
-from .trainer import Trainer
+from .model import Model
 from random import randint
 from time import sleep
 import numpy as np
-import os
 
 
 class ModelManager:
@@ -17,48 +16,66 @@ class ModelManager:
         self.alpha = confModels["defaultAlpha"]
         self.minGameByCat = confModels["defaultMinGameByCat"]
         self.outputDir = outputDir
-        self.chooseModels()
+        self.model, self.modelName = self.chooseModels()
 
     def chooseModels(self):
 
         models = self.postgresDao.getModels(self.modelType)
-        trainer = Trainer(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
-                          self.postgresDao, True)
+        trainer = Model(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
+                        self.postgresDao, True)
 
         print("INFO: {0} modèles de type {1}.".format(len(models["name"]), self.modelType))
+
+        dictData = self.postgresDao.getGameDataset()
+        dataset = cleanGameData(dictData)
+
+        print("INFO: Dataset composé de {} jeux.".format(len(dataset[0, :])))
+
+        simTests = self.postgresDao.getGameTestSimilarityResult()
 
         if len(models["name"]) < 1:
 
             print("INFO: Entrainement du modèle par défault...")
-            dictData = self.postgresDao.getGameDataset()
-            dataset = cleanGameData(dictData)
-            trainer.run(dataset)
+            trainer.train(dataset)
             model = trainer.loadModel("default")
             modelName = "default"
 
-        elif len(models["name"]) > 1:
+        elif len(simTests["id_game_test"]) < 1:
 
-            bestModelName = "default"
-            bestModelNote = models["note"][models["name"].index("default")]
-
-            for i in range(0, len(models["name"])):
-
-                if models["name"][i] == "default":
-                    continue
-
-                if models["note"][i] > bestModelNote and models["nb_test"][i] > 4:
-                    bestModelNote = models["note"][i]
-                    bestModelName = models["name"][i]
-
-            model = trainer.loadModel(bestModelName)
-            modelName = bestModelName
-
-            print("INFO: Meilleur modèle: {}.".format(modelName))
+            model = trainer.loadModel("default")
+            modelName = "default"
 
         else:
 
-            model = trainer.loadModel("default")
-            modelName = "default"
+            print("INFO: Sélection du meilleur modèles entre {} modèles.".format(len(models["name"])))
+
+            modelRates = {}
+
+
+            print("INFO: {} tests de similarité.".format(len(simTests["id_game_test"])))
+
+            for i in range(len(models["name"])):
+                model = trainer.loadModel(models["name"][i])
+                modelRates[models["name"][i]] = self.evluateModel(trainer, model, dataset, simTests)
+                print("INFO: Evaluation du modèle {}: {}.".format(models["name"][i], modelRates[models["name"][i]]))
+
+            orderRates = dict(sorted(modelRates.items(), key=lambda item: item[1], reverse=True))
+
+            if len(models["name"]) > 100:
+
+                print("INFO: nettoyage des modèles, conservation des 50 meilleurs...")
+
+                for k in list(orderRates.keys())[50:]:
+
+                    if k != "default":
+                        trainer.dropModel(k)
+                        self.postgresDao.deleteModel(k)
+                        print("INFO: Supression du modèle {}".format(orderRates[k]))
+
+            modelName = list(orderRates.keys())[0]
+            model = trainer.loadModel(list(orderRates.keys())[0])
+
+            print("INFO: Meilleur modèle: {}, note {}.".format(modelName, orderRates[modelName]))
 
         return model, modelName
 
@@ -96,102 +113,66 @@ class ModelManager:
         for newModel in newModels:
             print("INFO: Entrainement {}.".format(newModel))
 
-            trainer = Trainer(self.modelType, newModel[0], newModel[1], newModel[2], self.outputDir,
-                              self.postgresDao, False)
-            trainer.run(dataset)
+            trainer = Model(self.modelType, newModel[0], newModel[1], newModel[2], self.outputDir,
+                            self.postgresDao, False)
+            trainer.train(dataset)
             sleep(1)
 
-    def generateTestForModels(self, nbTestForModel):
-
-        trainer = Trainer(self.modelType, self.nearestNeightboor, self.alpha, self.minGameByCat, self.outputDir,
-                          self.postgresDao)
+    def generateGameTestSimilarity(self, nbTest):
 
         dictData = self.postgresDao.getGameDataset()
         dataset = cleanGameData(dictData)
 
-        for file in os.listdir(self.outputDir):
+        if len(dataset[0]) < 5:
+            print("ERROR: Trop peu de jeux ({}) pour générer un test de similarité.".format(len(dataset[0])))
 
-            if file != ".gitignore":
+        for i in range(nbTest):
+            testGameIds = np.random.choice(dataset[0], 4)
+            self.postgresDao.insertGameTestSimilarity(int(testGameIds[0]), int(testGameIds[1]),
+                                                      int(testGameIds[2]), int(testGameIds[3]))
 
-                modelName = file.replace(".joblib", "")
-                idModel = self.postgresDao.getModelIdByName(modelName)
+            print("INFO: Insertion test similarté: {} - {} - {} - {}"
+                  .format(int(testGameIds[0]), int(testGameIds[1]), int(testGameIds[2]), int(testGameIds[3])))
 
-                model = trainer.loadModel(modelName)
-                model, pred = trainer.clusterize(dataset, model)
+    @staticmethod
+    def evluateModel(trainer, model, dataset, similarityTests):
 
-                print(
-                    "INFO: Génération de {} tests pour le modèle {} id {}.".format(nbTestForModel, modelName, idModel))
+        model, pred = trainer.clusterize(dataset, model)
+        gameIds = dataset[0, :]
 
-                for i in range(nbTestForModel):
-                    self.createModelTest(dataset, pred, idModel)
+        rate = 0.0
+        nbTest = 0
 
-    def createModelTest(self, dataset, pred, idModel):
+        for i in range(len(similarityTests["result"])):
 
-        bufferIndexs = np.where(pred != -1)[0]
-        testGameIndex = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
-        testGameId = int(dataset[0][testGameIndex])
-        testCat = pred[testGameIndex]
+            indexTest = np.where(gameIds == similarityTests["id_game_test"][i])[0]
+            indexOne = np.where(gameIds == similarityTests["id_game_one"][i])[0]
+            indexTwo = np.where(gameIds == similarityTests["id_game_two"][i])[0]
+            indexThree = np.where(gameIds == similarityTests["id_game_three"][i])[0]
 
-        print("INFO: Modèle {} - Jeu référence {} - catégorie {} - taille de la catégorie {}."
-              .format(idModel, testGameId, testCat, len(np.where(pred == testCat)[0])))
+            if similarityTests["result"][i] == 4:
 
-        if len(np.where(pred == testCat)[0]) < 2:
-            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
-            return
+                continue
 
-        nearGameId = testGameId
+            elif similarityTests["result"][i] == 0 and pred[indexTest] == pred[indexOne]:
 
-        while nearGameId == testGameId:
-            bufferIndexs = np.where(pred == testCat)[0]
-            indexNearGame = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
-            nearGameId = int(dataset[0][indexNearGame])
+                rate += 1.0
 
-        print("INFO: Modèle {} - Jeu proche {}.".format(idModel, nearGameId))
+            elif similarityTests["result"][i] == 1 and pred[indexTest] == pred[indexTwo]:
 
-        bufferIndexs = np.where((pred != testCat) & (pred != -1))[0]
+                rate += 1.0
 
-        if len(bufferIndexs) < 2:
-            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
-            return
+            elif similarityTests["result"][i] == 2 and pred[indexTest] == pred[indexThree]:
 
-        indexGameOne = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
-        idGameOne = int(dataset[0][indexGameOne])
-        catGameOne = pred[indexGameOne]
+                rate += 1.0
 
-        print("INFO: Modèle {} - Jeu éloigné 1 {} - catégorie {}.".format(idModel, idGameOne, catGameOne))
+            nbTest += 1
 
-        bufferIndexs = np.where((pred != testCat) & (pred != -1) & (pred != catGameOne))[0]
+        if nbTest < 1:
+            print("WARNING: Aucun test valide pour noter les modèles.")
+            return -1.0
 
-        if len(bufferIndexs) < 2:
-            print("ERROR: Taille de la catégorie {} trop faible pour le test.".format(testCat))
-            return
-
-        indexGameTwo = bufferIndexs[randint(0, len(bufferIndexs) - 1)]
-        idGameTwo = int(dataset[0][indexGameTwo])
-
-        print("INFO: Modèle {} - Jeu éloigné 2 {} - catégorie {}.".format(idModel, idGameTwo, pred[indexGameTwo]))
-
-        self.postgresDao.insertModelTest(idModel, testGameId, nearGameId, idGameOne, idGameTwo)
-
-    def updateModelRates(self):
-
-        modelIds = self.postgresDao.getModelIds(self.modelType)
-
-        print("INFO: Mise à jour des notes des {} modèles existant.".format(len(modelIds)))
-
-        for modelId in modelIds:
-
-            rates = self.postgresDao.getModelRatesById(modelId)
-
-            if len(rates) > 0:
-
-                avg = np.average(np.array(rates))
-                self.postgresDao.updateModelRecRate(modelId, avg, len(rates))
-                print("INFO: Modèle {} - {} notes - moyenne {}.".format(modelId, len(rates), avg))
-
-            else:
-
-                print("INFO: Aucune note pour le modèle {}.".format(modelId))
+        return rate / nbTest
 
     def getRandomParam(self):
 

@@ -56,22 +56,19 @@ create table if not exists of_game_recommandation (id SERIAL PRIMARY KEY,
 create table if not exists of_recommandation_model (id SERIAL PRIMARY KEY,
                                                    model_name VARCHAR,
                                                    recommandation_type SMALLINT,
-                                                   note DECIMAL,
-                                                   nb_test INT,
                                                    near_neight INT,
                                                    alpha INT,
                                                    min_game_by_cat INT,
                                                    date_maj TIMESTAMP);
 
-create table if not exists of_model_test (id SERIAL PRIMARY KEY,
-                                                   id_model INT,
+create table if not exists of_test_game_similarity (id SERIAL PRIMARY KEY,
                                                    id_game_test INT,
-                                                   id_game_near INT,
-                                                   id_game_other_one INT,
-                                                   id_game_other_two INT,
+                                                   id_game_one INT,
+                                                   id_game_two INT,
+                                                   id_game_three INT,
                                                    date_create TIMESTAMP);
 
-create table if not exists of_model_test_result (id SERIAL PRIMARY KEY,
+create table if not exists of_similarity_test_result (id SERIAL PRIMARY KEY,
                                                    id_test INT,
                                                    id_user INT,
                                                    result INT,
@@ -85,12 +82,12 @@ create table if not exists of_game_user_evaluation (id SERIAL PRIMARY KEY,
 
 -- chatbot --
 
-CREATE TABLE if not exists of_user (id SERIAL PRIMARY KEY,
+create table if not exists of_user (id SERIAL PRIMARY KEY,
                                     username VARCHAR,
                                     email VARCHAR,
                                     age SMALLINT);
 
-CREATE TABLE if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
+create table if not exists  of_chatbot_message (id SERIAL PRIMARY KEY,
                                                 id_user INT,
                                                 type SMALLINT,
                                                 date_send TIMESTAMP,

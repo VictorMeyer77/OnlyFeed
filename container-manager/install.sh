@@ -9,13 +9,20 @@ sudo apt-get update
 sudo apt-get install cron
 sudo systemctl enable cron
 
+# ajout recommandation
+cp crontab.txt newcron.txt
+echo "0 15 * * * sudo docker run -d game_recommandation:latest -v $(pwd)/volumes/models:/models python /app/main.py genrec 10" >> newcron.txt
+echo "0 15 * * 5 sudo docker run -d game_recommandation:latest -v $(pwd)/volumes/models:/models python /app/main.py genmod 10 100" >> newcron.txt
+
 # lancement cron
 sudo /usr/sbin/crond -f -l 8
-sudo /usr/bin/crontab crontab.txt
+sudo /usr/bin/crontab newcron.txt
+rm newcron.txt
 
 # création des images
 sudo docker build -t steam_pipeline ../steam-pipeline/.
 sudo docker build -t game_rating ../game-rating/.
+sudo docker build -t game_recommandation ../game-recommandation/.
 
 # lancement docker-compose
 sudo docker-compose -f ../docker-compose.yml up -d

@@ -47,8 +47,8 @@ class PostgresDao:
                            ga.lifetime,
                            ga.immersion,
                            ga.extern
-                           from (select distinct id_game, date_maj, graphic, gameplay, lifetime,
-                           immersion, extern from of_game_analysis order by date_maj desc) as ga
+                           from (select * from of_game_analysis as r inner join (select id_game as i, max(date_maj) as d
+                           from of_game_analysis group by id_game) as t on t.i = r.id_game and t.d = r.date_maj) as ga
                            left join steam_video_games as vg ON ga.id_game = vg.id""")
 
             resultReq = cursor.fetchall()
@@ -72,7 +72,7 @@ class PostgresDao:
 
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("""select distinct model_name, note, nb_test, near_neight, alpha, min_game_by_cat, date_maj
+            cursor.execute("""select distinct model_name, near_neight, alpha, min_game_by_cat, date_maj
                            from of_recommandation_model
                            where recommandation_type = %s
                            order by date_maj desc""", (modelType,))
@@ -90,53 +90,24 @@ class PostgresDao:
             if conn is not None:
                 self.pool.putconn(conn)
 
-    def getModelIds(self, modelType):
+    def getGameTestSimilarityResult(self):
 
         conn = None
 
         try:
 
-            ids = []
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("""select distinct id from of_recommandation_model where recommandation_type = %s""",
-                           (modelType,))
+            cursor.execute("""select t.id_game_test, t.id_game_one, t.id_game_two, t.id_game_three, r.result 
+                           from of_similarity_test_result as r
+                           left join of_test_game_similarity as t on 
+                           r.id_test = t.id""")
 
-            for res in cursor.fetchall():
-                ids.append(res[0])
-
-            return ids
+            return self.extractSimilarityTestResult(cursor.fetchall())
 
         except Exception as e:
 
-            print("ERROR getModelIds: " + str(e))
-
-        finally:
-
-            if conn is not None:
-                self.pool.putconn(conn)
-
-    def getModelRatesById(self, modelId):
-
-        conn = None
-
-        try:
-
-            rates = []
-            conn = self.pool.getconn()
-            cursor = conn.cursor()
-            cursor.execute("""select r.result from of_model_test_result as r left join of_model_test as t on 
-                           r.id_test = t.id where t.id_model = %s and r.result != 2""",
-                           (modelId,))
-
-            for res in cursor.fetchall():
-                rates.append(res[0])
-
-            return rates
-
-        except Exception as e:
-
-            print("ERROR getModelIds: " + str(e))
+            print("ERROR getGameTestSimilarityResult: " + str(e))
 
         finally:
 
@@ -233,10 +204,10 @@ class PostgresDao:
             cursor = conn.cursor()
             now = str(datetime.now())
             cursor.execute("INSERT INTO of_recommandation_model "
-                           "(model_name, recommandation_type, note, nb_test, "
+                           "(model_name, recommandation_type, "
                            "near_neight, alpha, min_game_by_cat, date_maj) "
-                           "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                           (modelName, recommandationType, 0.5, 0, nearNeight, alpha, minGameByCat, now))
+                           "VALUES (%s, %s, %s, %s, %s, %s)",
+                           (modelName, recommandationType, nearNeight, alpha, minGameByCat, now))
 
             conn.commit()
 
@@ -274,7 +245,7 @@ class PostgresDao:
             if conn is not None:
                 self.pool.putconn(conn)
 
-    def insertModelTest(self, idModel, idGameTest, idGameNear, idGameOtherOne, idGameOtherTwo):
+    def insertGameTestSimilarity(self, idGameTest, idGameOne, idGameTwo, idGameThree):
 
         conn = None
 
@@ -283,23 +254,23 @@ class PostgresDao:
             conn = self.pool.getconn()
             cursor = conn.cursor()
             now = str(datetime.now())
-            cursor.execute("INSERT INTO of_model_test "
-                           "(id_model, id_game_test, id_game_near, id_game_other_one, id_game_other_two, date_create) "
-                           "VALUES (%s, %s, %s, %s, %s, %s)",
-                           (idModel, idGameTest, idGameNear, idGameOtherOne, idGameOtherTwo, now))
+            cursor.execute("INSERT INTO of_test_game_similarity "
+                           "(id_game_test, id_game_one, id_game_two, id_game_three, date_create) "
+                           "VALUES (%s, %s, %s, %s, %s)",
+                           (idGameTest, idGameOne, idGameTwo, idGameThree, now))
 
             conn.commit()
 
         except Exception as e:
 
-            print("ERROR insertModelTest: " + str(e))
+            print("ERROR insertGameTestSimilarity: " + str(e))
 
         finally:
 
             if conn is not None:
                 self.pool.putconn(conn)
 
-    def updateModelRecRate(self, idModel, rate, nbTest):
+    def deleteModel(self, modelName):
 
         conn = None
 
@@ -307,16 +278,14 @@ class PostgresDao:
 
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("UPDATE of_recommandation_model "
-                           "SET note = %s, nb_test = %s "
-                           "WHERE id = %s",
-                           (rate, nbTest, idModel))
+            cursor.execute("""DELETE FROM of_recommandation_model 
+                           WHERE model_name = %s""", (modelName,))
 
             conn.commit()
 
         except Exception as e:
 
-            print("ERROR updateModelRecRate: " + str(e))
+            print("ERROR deleteModel: " + str(e))
 
         finally:
 
@@ -327,8 +296,6 @@ class PostgresDao:
     def extractModels(sqlResponse):
 
         models = {"name": [],
-                  "note": [],
-                  "nb_test": [],
                   "near_neight": [],
                   "alpha": [],
                   "min_game_by_cat": [],
@@ -336,12 +303,10 @@ class PostgresDao:
 
         for response in sqlResponse:
             models["name"].append(response[0])
-            models["note"].append(response[1])
-            models["nb_test"].append(response[2])
-            models["near_neight"].append(response[3])
-            models["alpha"].append(response[4])
-            models["min_game_by_cat"].append(response[5])
-            models["date_maj"].append(response[6])
+            models["near_neight"].append(response[1])
+            models["alpha"].append(response[2])
+            models["min_game_by_cat"].append(response[3])
+            models["date_maj"].append(response[4])
 
         return models
 
@@ -384,3 +349,21 @@ class PostgresDao:
             dataset["extern"].append(response[15])
 
         return dataset
+
+    @staticmethod
+    def extractSimilarityTestResult(sqlResponse):
+
+        result = {"id_game_test": [],
+                  "id_game_one": [],
+                  "id_game_two": [],
+                  "id_game_three": [],
+                  "result": []}
+
+        for response in sqlResponse:
+            result["id_game_test"].append(response[0])
+            result["id_game_one"].append(response[1])
+            result["id_game_two"].append(response[2])
+            result["id_game_three"].append(response[3])
+            result["result"].append(response[4])
+
+        return result

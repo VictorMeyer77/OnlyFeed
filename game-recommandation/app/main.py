@@ -40,13 +40,12 @@ if __name__ == "__main__":
         if len(sys.argv) < 4:
 
             print("ERROR: genmod prend deux argument: "
-                  "le nombre de nouveaux modèles à créer et le nombre de test à générer par modèle.")
+                  "le nombre de nouveaux modèles à créer et le nombre de test à générer.")
 
         else:
 
             modelManager.trainNewModels(int(sys.argv[2]))
-            modelManager.generateTestForModels(int(sys.argv[3]))
-            modelManager.updateModelRates()
+            modelManager.generateGameTestSimilarity(int(sys.argv[3]))
 
     else:
 

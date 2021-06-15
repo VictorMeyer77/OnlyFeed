@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 
-class Trainer:
+class Model:
 
     def __init__(self, modelType, nearestNeightboor, alpha, minGameByCat, outputDir, postgresDao, default=False):
 
@@ -21,7 +21,7 @@ class Trainer:
         self.default = default
         self.modelName = self.getModelName()
 
-    def run(self, dataset):
+    def train(self, dataset):
 
         model, pred = self.clusterize(dataset)
 
@@ -74,6 +74,17 @@ class Trainer:
     def saveModel(self, model):
 
         dump(model, os.path.join(self.outputDir, self.modelName + ".joblib"))
+
+    def dropModel(self, modelName):
+
+        if os.path.exists(os.path.join(self.outputDir, modelName + ".joblib")):
+
+            os.remove(os.path.join(self.outputDir, modelName + ".joblib"))
+            print("INFO: {}.joblib supprimé de {}.".format(modelName, self.outputDir))
+
+        else:
+
+            print("WARNING: {} n'existe pas.".format(os.path.join(self.outputDir, modelName + ".joblib")))
 
     def getModelName(self):
 

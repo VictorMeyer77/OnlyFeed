@@ -17,7 +17,7 @@ class RecByEval:
         dataset = cleanGameData(dictData)
         print("INFO: Comparaison de {} jeux.".format(len(dataset[0])))
 
-        model, modelName = self.modelManager.chooseModels()
+        model, modelName = self.modelManager.model, self.modelManager.modelName
         modelId = self.postgresDao.getModelIdByName(modelName)
         print("INFO: Meilleur modèle: id -> {0}, name -> {1}.".format(modelId, modelName))
 
@@ -27,7 +27,7 @@ class RecByEval:
 
         userIds = self.postgresDao.getOfUserId()
         evals = self.postgresDao.getGameUserEvaluation()
-        print("INFO: Traitement des {0} utilisateurs et {1} évaluations.".format(len(userIds), len(evals)))
+        print("INFO: Traitement des {0} utilisateurs et {1} évaluations.".format(len(userIds), len(evals["game_id"])))
 
         for userId in userIds:
 
