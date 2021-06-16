@@ -3,7 +3,8 @@ FROM python:latest
 COPY app/. /app
 COPY requirements.txt /app/
 COPY conf/. /conf
-COPY models/. /models
+
+RUN mkdir /models
 
 RUN cd /app \
       && pip3 install --upgrade pip \

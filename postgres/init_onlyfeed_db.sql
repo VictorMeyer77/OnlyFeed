@@ -50,8 +50,13 @@ create table if not exists of_words_by_critera (id SERIAL PRIMARY KEY,
 create table if not exists of_game_recommandation (id SERIAL PRIMARY KEY,
                                                    of_user_id INTEGER,
                                                    game_id INT,
-                                                   model_id INT,
                                                    date_create TIMESTAMP);
+
+create table if not exists of_game_user_evaluation (id SERIAL PRIMARY KEY,
+                                               of_user_id INTEGER,
+                                               game_id INT,
+                                               rate SMALLINT,
+                                               date_create TIMESTAMP);
 
 create table if not exists of_recommandation_model (id SERIAL PRIMARY KEY,
                                                    model_name VARCHAR,
@@ -73,12 +78,6 @@ create table if not exists of_similarity_test_result (id SERIAL PRIMARY KEY,
                                                    id_user INT,
                                                    result INT,
                                                    date_create TIMESTAMP);
-
-create table if not exists of_game_user_evaluation (id SERIAL PRIMARY KEY,
-                                               of_user_id INTEGER,
-                                               game_id INT,
-                                               rate SMALLINT,
-                                               date_create TIMESTAMP);
 
 -- chatbot --
 

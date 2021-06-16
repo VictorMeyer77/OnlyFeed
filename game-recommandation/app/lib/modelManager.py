@@ -51,7 +51,6 @@ class ModelManager:
 
             modelRates = {}
 
-
             print("INFO: {} tests de similarité.".format(len(simTests["id_game_test"])))
 
             for i in range(len(models["name"])):
@@ -70,7 +69,7 @@ class ModelManager:
                     if k != "default":
                         trainer.dropModel(k)
                         self.postgresDao.deleteModel(k)
-                        print("INFO: Supression du modèle {}".format(orderRates[k]))
+                        print("INFO: Supression du modèle {}".format(k))
 
             modelName = list(orderRates.keys())[0]
             model = trainer.loadModel(list(orderRates.keys())[0])
@@ -167,10 +166,6 @@ class ModelManager:
                 rate += 1.0
 
             nbTest += 1
-
-        if nbTest < 1:
-            print("WARNING: Aucun test valide pour noter les modèles.")
-            return -1.0
 
         return rate / nbTest
 

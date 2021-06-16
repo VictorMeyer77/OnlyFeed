@@ -18,8 +18,7 @@ class RecByEval:
         print("INFO: Comparaison de {} jeux.".format(len(dataset[0])))
 
         model, modelName = self.modelManager.model, self.modelManager.modelName
-        modelId = self.postgresDao.getModelIdByName(modelName)
-        print("INFO: Meilleur modèle: id -> {0}, name -> {1}.".format(modelId, modelName))
+        print("INFO: Meilleur modèle: {}.".format(modelName))
 
         pred = self.getModelPred(model, dataset)
         distancePerGroup = self.distancePerGroup(dataset, pred)
@@ -41,7 +40,7 @@ class RecByEval:
                 print("INFO: Catégorie aléatoire {0} pour l'utilisateur {1}".format(randomCat, userId))
 
                 for gamePred in gamesPred:
-                    self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
+                    self.postgresDao.insertGameRecommandation(gamePred, userId)
 
             else:
 
@@ -89,7 +88,7 @@ class RecByEval:
                 gamesPred = self.getGamesByCat(dataset, pred, nbPredictByUser, userCat, banGameId)
 
                 for gamePred in gamesPred:
-                    self.postgresDao.insertGameRecommandation(gamePred, modelId, userId)
+                    self.postgresDao.insertGameRecommandation(gamePred, userId)
 
     @staticmethod
     def getModelPred(model, dataset):

@@ -72,10 +72,9 @@ class PostgresDao:
 
             conn = self.pool.getconn()
             cursor = conn.cursor()
-            cursor.execute("""select distinct model_name, near_neight, alpha, min_game_by_cat, date_maj
+            cursor.execute("""select model_name, near_neight, alpha, min_game_by_cat
                            from of_recommandation_model
-                           where recommandation_type = %s
-                           order by date_maj desc""", (modelType,))
+                           where recommandation_type = %s""", (modelType,))
 
             resultReq = cursor.fetchall()
 
@@ -168,32 +167,6 @@ class PostgresDao:
             if conn is not None:
                 self.pool.putconn(conn)
 
-    def getModelIdByName(self, modelName):
-
-        conn = None
-
-        try:
-
-            conn = self.pool.getconn()
-            cursor = conn.cursor()
-            cursor.execute("select id from of_recommandation_model where model_name = %s", (modelName,))
-            resultReq = cursor.fetchall()
-
-            if len(resultReq) < 1:
-                print("WARNING: Aucun modèle enregistré sous le nom de {}.".format(modelName))
-                return -1
-
-            return resultReq[0][0]
-
-        except Exception as e:
-
-            print("ERROR gameModelIdByName: " + str(e))
-
-        finally:
-
-            if conn is not None:
-                self.pool.putconn(conn)
-
     def insertModel(self, modelName, recommandationType, nearNeight, alpha, minGameByCat):
 
         conn = None
@@ -220,7 +193,7 @@ class PostgresDao:
             if conn is not None:
                 self.pool.putconn(conn)
 
-    def insertGameRecommandation(self, gameId, modelId, ofUserId):
+    def insertGameRecommandation(self, gameId, ofUserId):
 
         conn = None
 
@@ -230,9 +203,9 @@ class PostgresDao:
             cursor = conn.cursor()
             now = str(datetime.now())
             cursor.execute("INSERT INTO of_game_recommandation "
-                           "(of_user_id, game_id, model_id, date_create) "
-                           "VALUES (%s, %s, %s, %s)",
-                           (ofUserId, gameId, modelId, now))
+                           "(of_user_id, game_id, date_create) "
+                           "VALUES (%s, %s, %s)",
+                           (ofUserId, gameId, now))
 
             conn.commit()
 
@@ -298,15 +271,13 @@ class PostgresDao:
         models = {"name": [],
                   "near_neight": [],
                   "alpha": [],
-                  "min_game_by_cat": [],
-                  "date_maj": []}
+                  "min_game_by_cat": []}
 
         for response in sqlResponse:
             models["name"].append(response[0])
             models["near_neight"].append(response[1])
             models["alpha"].append(response[2])
             models["min_game_by_cat"].append(response[3])
-            models["date_maj"].append(response[4])
 
         return models
 
