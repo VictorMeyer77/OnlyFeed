@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3
+FROM show0k/miniconda-armv7
 
 COPY app/. /app
 COPY requirements.txt /app/
