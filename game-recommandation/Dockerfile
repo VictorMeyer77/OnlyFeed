@@ -11,4 +11,4 @@ RUN apt-get install python3-pip -y
 
 RUN cd /app \
       && pip3 install --upgrade pip \
-      && pip3 install psycopg2 numpy CurrencyConverter
+      && pip3 install -r requirements.txt
