@@ -6,8 +6,8 @@ COPY conf/. /conf
 
 RUN mkdir /models
 
-RUN apt-get update
+RUN apt-get update && apt-get install install python3-pip
 
 RUN cd /app \
-      && pip install --upgrade pip \
-      && pip install psycopg2 numpy CurrencyConverter
+      && pip3 install --upgrade pip \
+      && pip3 install psycopg2 numpy CurrencyConverter
