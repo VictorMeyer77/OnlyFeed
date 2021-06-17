@@ -1,4 +1,4 @@
-FROM python:latest
+FROM continuumio/miniconda3
 
 COPY app/. /app
 COPY requirements.txt /app/
@@ -6,9 +6,8 @@ COPY conf/. /conf
 
 RUN mkdir /models
 
-RUN apt-get update
+#RUN apt-get update
 
-
-RUN cd /app \
-      && pip3 install --upgrade pip \
-      && pip3 install numpy psycopg2 sklearn CurrencyConverter
+RUN conda install sklearn numpy psycopg2
+RUN pip install --upgrade pip \
+      && pip install CurrencyConverter
