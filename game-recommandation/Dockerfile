@@ -6,7 +6,6 @@ COPY conf/. /conf
 
 RUN mkdir /models
 
-RUN apt-get install gfortran libopenblas-dev liblapack-dev
 RUN apt-get update
 
 RUN cd /app \
