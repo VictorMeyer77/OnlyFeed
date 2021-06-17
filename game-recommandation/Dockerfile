@@ -12,4 +12,4 @@ RUN apt-get install python3-psycopg2 gcc python3-dev musl-dev -y
 
 RUN cd /app \
       && pip3 install --upgrade pip \
-      && pip3 install -r requirements.txt
+      && pip3 install CurrencyConverter
