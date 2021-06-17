@@ -1,4 +1,4 @@
-FROM show0k/miniconda-armv7
+FROM arm32v7/python
 
 COPY app/. /app
 COPY requirements.txt /app/
@@ -8,5 +8,4 @@ RUN mkdir /models
 
 #RUN apt-get update
 
-RUN export PATH="/opt/conda/bin:${PATH}" && conda install sklearn numpy psycopg2
-RUN pip install --upgrade pip && pip install CurrencyConverter
+RUN pip install --upgrade pip && pip install CurrencyConverter sklearn numpy psycopg2
