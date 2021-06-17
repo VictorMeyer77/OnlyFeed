@@ -6,7 +6,8 @@ COPY conf/. /conf
 
 RUN mkdir /models
 
-RUN apt-get update && apt-get install python3-pip
+RUN apt-get update
+RUN apt-get install python3-pip
 
 RUN cd /app \
       && pip3 install --upgrade pip \
