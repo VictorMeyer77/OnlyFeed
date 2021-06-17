@@ -8,7 +8,7 @@ RUN mkdir /models
 
 RUN apt-get update
 RUN apt-get install python3-pip -y
-RUN apt-get install python3-psycopg2 gcc python3-dev musl-dev
+RUN apt-get install python3-psycopg2 gcc python3-dev musl-dev -y
 
 RUN cd /app \
       && pip3 install --upgrade pip \
