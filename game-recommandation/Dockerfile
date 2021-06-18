@@ -6,4 +6,4 @@ COPY conf/. /conf
 
 RUN mkdir /models
 
-RUN pip install --upgrade pip && pip install CurrencyConverter sklearn numpy psycopg2
+RUN pip3 install --upgrade pip && pip3 install CurrencyConverter sklearn numpy psycopg2
