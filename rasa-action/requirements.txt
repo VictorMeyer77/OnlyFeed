@@ -1,0 +1,4 @@
+typing-extensions==3.10.0.0
+rasa==2.7.0
+rasa-sdk==2.7.0
+psycopg2-binary==2.8.6

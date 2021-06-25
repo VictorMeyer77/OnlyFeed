@@ -1,0 +1,46 @@
+version: "2.0"
+
+stories:
+
+- story: thank_message
+  steps:
+  - intent: thank
+  - action: utter_thanks
+
+- story: Get_Requirements
+  steps:
+    - intent: get_requirements
+    - action: Get_Requirements
+
+- story: get_video_game_price
+  steps:
+  - intent: get_price
+  - action: Get_Video_Game_Price
+
+- story: get_video_game_rate
+  steps:
+  - intent: get_rate
+  - action: Get_Video_Game_Rate
+
+- story: get_recommandation
+  steps:
+    - intent: get_recommandation
+    - action: Get_Recommandation
+    - action: utter_ask_evaluation
+    - intent: give_game_evaluation
+    - action: Get_Evaluation
+
+- story: get_latest_game
+  steps:
+    - intent: get_latest_game
+    - action: Get_Latest_Game
+
+- story: get_minimum_age
+  steps:
+    - intent: get_minimum_age
+    - action: Get_Minimum_Age
+
+- story: get_latest_review
+  steps:
+    - intent: get_latest_review
+    - action: Get_Latest_Review

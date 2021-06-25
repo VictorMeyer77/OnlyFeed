@@ -1,0 +1,107 @@
+version: '2.0'
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+intents:
+- get_price
+- get_rate
+- get_genre
+- get_graphic
+- get_gameplay
+- get_immersion
+- get_review
+- get_recommandation
+- give_game_evaluation
+- greet
+- goodbye
+- affirm
+- deny
+- mood_great
+- mood_unhappy
+- bot_challenge
+- get_latest_game
+- get_requirements
+- thank
+- get_minimum_age
+- get_latest_review
+entities:
+- video_game
+- os
+slots:
+  video_game:
+    type: text
+    influence_conversation: false
+responses:
+  utter_give_price:
+  - text: 'Le prix de {video_game} est : {price} €'
+  utter_give_rate:
+  - text: 'Voici les notes de {video_game} :
+<br />
+<br />
+graphiques : {graphic}
+<br />
+gameplay : {gameplay}
+<br />
+durée de vie : {lifetime}
+<br />
+immersion : {immersion}
+<br />
+communauté : {extern}'
+  utter_greet:
+  - text: Bonjour, comment vas-tu?
+  utter_cheer_up:
+  - text: 'Tiens:'
+    image: https://i.imgur.com/nGF1K8f.jpg
+  utter_did_that_help:
+  - text: Est ce que ca a été utile??
+  utter_happy:
+  - text: Génial! Merci de ta réponse
+  utter_goodbye:
+  - text: Au revoir!
+  utter_iamabot:
+  - text: Je ne suis qu'un simple bot.
+  utter_give_recommandation:
+  - text: 'Je te conseille le jeu {video_game}'
+  utter_ask_evaluation:
+  - text: 'Notez cette recommandation entre 1 et 10'
+  utter_not_found:
+  - text: "Désolé je n'ai pas trouvé ce que tu cherches"
+  utter_give_latest_game:
+  - text: "Voici notre dernière sortie Steam : {latest_game}"
+  utter_give_requirements:
+  - text: "Voici les specs de {video_game} : 
+    <br />
+    <br />
+    Linux : {linux_ok} <br />
+    Windows : {windows_ok} <br />
+    Mac : {mac_ok}
+    <br />
+    <br />
+    Requirements : <br />
+    <br />
+    Linux : {linux_requirements} <br >
+    Windows : {windows_requirements} <br >
+    Mac : {mac_requirements}
+  "
+  utter_thanks:
+  - text: "Ravi de t'avoir aidé ;)"
+  utter_give_minimum_age:
+  - text: "Tu dois avoir au moins {age} ans pour jouer à {video_game}"
+  utter_give_latest_review:
+  - text: "Voici le dernier commentaire de {video_game} : 
+  <br />
+  {latest_review}"
+
+actions:
+- Get_Video_Game_Price
+- Get_Video_Game_Rate
+- Get_Recommandation
+- utter_ask_evaluation
+- Get_Evaluation
+- Get_Latest_Game
+- utter_happy
+- utter_give_rate
+- Get_Requirements
+- utter_thanks
+- Get_Minimum_Age
+- Get_Latest_Review
