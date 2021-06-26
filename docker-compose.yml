@@ -18,36 +18,41 @@ services :
 #    security_opt:
 #      - seccomp:unconfined
 #
-# rasa-train:
-#   image: rasa/rasa:2.6.3-full
-#   user: root
-#   volumes:
-#     - ./volumes/rasa-common:/app
-#   network_mode: host
-#   command:
-#     - train
+  rasa-train:
+   image: rasa/rasa:2.6.3-full
+   container_name: RASA-TRAIN
+   user: root
+   volumes:
+     - ./volumes/rasa-common:/app
+   network_mode: host
+   command:
+     - train
 
-# rasa-run:
-#   image: rasa/rasa:2.6.3-full
-#   user: root
-#   ports:
-#     - 5005:5005
-#   volumes:
-#     - ./volumes/rasa-common:/app
-#   network_mode: host
-#   depends_on:
-#     - rasa-train
-#   command:
-#     - run
+  rasa-run:
+   image: rasa/rasa:2.6.3-full
+   container_name: RASA-RUN
+   user: root
+   ports:
+     - 5005:5005
+   volumes:
+     - ./volumes/rasa-common:/app
+   network_mode: host
+   depends_on:
+     - rasa-train
+   restart: always
+   command:
+     - run
 
   action-server:
-    build: rasa-action
+   build: rasa-action
+   container_name: RASA-ACTION
+   network_mode: host
+   ports:
+     - 5055:5055
+
+  ihm-backend:
+    build: ihm-backend
+    container_name: IHM-BACKEND
     network_mode: host
     ports:
-      - 5055:5055
-
-#  ihm-backend:
-#    build: ihm-backend
-#    network_mode: host
-#    ports:
-#      - 5000:5000
+      - 5000:5000
