@@ -2,18 +2,52 @@ version: '3'
 
 services :
 
-  postgresql :
-    container_name: POSTGRES
-    image: postgres:alpine
-    ports :
-     - "54320:5432"
-    environment:
-      - POSTGRES_USER=of_dck
-      - POSTGRES_PASSWORD=gft78kP9!luY!
-      - POSTGRES_DB=onlyfeed
-    volumes :
-      - ./postgres/init_onlyfeed_db.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./volumes/pgdata:/var/lib/postgresql/data
+#  postgresql :
+#    container_name: POSTGRES
+#    image: postgres:alpine
+#    ports :
+#     - "54320:5432"
+#    environment:
+#      - POSTGRES_USER=of_dck
+#      - POSTGRES_PASSWORD=gft78kP9!luY!
+#      - POSTGRES_DB=onlyfeed
+#    volumes :
+#      - ./postgres/init_onlyfeed_db.sql:/docker-entrypoint-initdb.d/init.sql
+#      - ./volumes/pgdata:/var/lib/postgresql/data
+#    network_mode: host
+#    security_opt:
+#      - seccomp:unconfined
+#
+# rasa-train:
+#   image: rasa/rasa:2.6.3-full
+#   user: root
+#   volumes:
+#     - ./volumes/rasa-common:/app
+#   network_mode: host
+#   command:
+#     - train
+
+# rasa-run:
+#   image: rasa/rasa:2.6.3-full
+#   user: root
+#   ports:
+#     - 5005:5005
+#   volumes:
+#     - ./volumes/rasa-common:/app
+#   network_mode: host
+#   depends_on:
+#     - rasa-train
+#   command:
+#     - run
+
+  action-server:
+    build: rasa-action
     network_mode: host
-    security_opt:
-      - seccomp:unconfined
+    ports:
+      - 5055:5055
+
+#  ihm-backend:
+#    build: ihm-backend
+#    network_mode: host
+#    ports:
+#      - 5000:5000
